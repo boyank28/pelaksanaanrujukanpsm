@@ -1,12 +1,54 @@
 <style>
-    body { padding-bottom: 70px !important; }
-    .navbar-brand { font-weight: 800; letter-spacing: 0.5px; }
-    .nav-link { font-weight: 500; font-size: 15px; padding: 10px 15px !important; transition: 0.3s; white-space: nowrap; }
-    .nav-link:hover { color: #fcd34d !important; }
-    .nav-link.active { color: #fde047 !important; border-bottom: 2px solid #fde047; }
+    body { padding-left: 260px !important; padding-top: 80px !important; padding-bottom: 60px !important; background: #f0fdfa !important; }
+    .sidebar-custom {
+        position: fixed; top: 0; left: 0; width: 260px; height: 100vh;
+        background: #115e59; z-index: 1040; padding: 25px 0; color: white;
+        box-shadow: 4px 0 15px rgba(0,0,0,0.05); overflow-y: auto;
+    }
+    .sidebar-brand { font-size: 22px; font-weight: 800; padding: 0 25px; margin-bottom: 40px; display: flex; align-items: center; color: white !important; text-decoration: none; letter-spacing: 0.5px; }
+    .sidebar-brand i { font-size: 28px; margin-right: 10px; color: #ccfbf1; }
+    .sidebar-nav { list-style: none; padding: 0 15px; margin: 0; }
+    .sidebar-link {
+        display: flex; align-items: center; padding: 12px 20px; color: rgba(255,255,255,0.7); text-decoration: none;
+        font-weight: 500; transition: 0.3s; border-radius: 12px; margin-bottom: 5px;
+    }
+    .sidebar-link i { font-size: 18px; margin-right: 15px; }
+    .sidebar-link:hover { color: white; background: rgba(255,255,255,0.05); text-decoration: none;}
+    .sidebar-link.active { background: #0f766e; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    .topbar-custom {
+        position: fixed; top: 0; left: 260px; right: 0; height: 80px;
+        background: rgba(240, 253, 250, 0.9); backdrop-filter: blur(12px);
+        z-index: 1030; display: flex; align-items: center; justify-content: space-between;
+        padding: 0 40px; border-bottom: 1px solid rgba(15, 118, 110, 0.1);
+    }
+    .topbar-welcome { color: #0f766e; }
+    .topbar-welcome h4 { font-weight: 800; margin: 0; color: #1e293b; letter-spacing: -0.5px; }
+    .topbar-welcome span { font-size: 14px; font-weight: 500; color: #64748b; }
+    .topbar-actions { display: flex; align-items: center; gap: 20px; }
+    .sidebar-submenu { list-style: none; padding-left: 42px; margin: 0; padding-bottom: 10px; }
+    .submenu-link {
+        display: block; padding: 8px 12px; color: rgba(255,255,255,0.7); text-decoration: none;
+        font-size: 13px; font-weight: 500; transition: 0.3s; border-radius: 8px; margin-bottom: 3px;
+    }
+    .submenu-link:hover, .submenu-link.active { color: white; background: rgba(255,255,255,0.1); text-decoration: none; }
+    .sidebar-link[aria-expanded="true"] .bi-chevron-down { transform: rotate(180deg); }
+    .bi-chevron-down { transition: transform 0.3s; }
+    
+    @media (max-width: 991px) {
+        body { padding-left: 0 !important; padding-top: 130px !important; }
+        .sidebar-custom { display: none; }
+        .topbar-custom { left: 0; padding: 0 20px; flex-direction: column; height: auto; padding-top: 15px; padding-bottom: 15px; }
+    }
     
     /* Dark Mode Global Styles */
     body.dark-mode { background: #0f172a !important; color: #f8fafc !important; }
+    body.dark-mode .topbar-custom {
+        background: rgba(15, 23, 42, 0.9) !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+    }
+    body.dark-mode .topbar-welcome h4 { color: #f8fafc !important; }
+    body.dark-mode .topbar-welcome span { color: #94a3b8 !important; }
+    
     body.dark-mode .card-custom, body.dark-mode .content-wrapper, body.dark-mode .card { background: #1e293b !important; color: #f8fafc !important; border-color: #334155 !important; }
     body.dark-mode .card-header { background: #1e293b !important; }
     body.dark-mode h1, body.dark-mode h2, body.dark-mode h3, body.dark-mode h4, body.dark-mode h5, body.dark-mode h6 { color: #f8fafc !important; }
@@ -69,91 +111,98 @@ window.addEventListener('load', function() {
     }
 });
 </script>
-<nav class="navbar navbar-expand-lg navbar-dark sticky-top" style="position: sticky; top: 0; z-index: 1030; background: linear-gradient(135deg, #0f766e 0%, #064e3b 100%); padding: 15px 0; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-    <div class="container">
-        <a class="navbar-brand fw-bold" href="?act=Dashboard">
-            <i class="bi bi-hospital me-2"></i> Rujukan PSM
+<div class="sidebar-custom d-none d-lg-block">
+    <a href="?act=Dashboard" class="sidebar-brand">
+        <i class="bi bi-hospital"></i>
+        <div>
+            <div style="font-size: 12px; font-weight: 600; opacity: 0.8; line-height: 1;">SISTEM RUJUKAN</div>
+            <div style="line-height: 1;">PSM</div>
+        </div>
+    </a>
+    
+    <?php 
+        $perms_nav = isset($_SESSION['permissions_psm']) ? $_SESSION['permissions_psm'] : [];
+        $is_admin_nav = (isset($_SESSION['role_psm']) && $_SESSION['role_psm'] == 'Admin');
+        if (empty($perms_nav)) { 
+            $perms_nav = [
+                'can_view_laporan' => true, 'can_manage_fee' => $is_admin_nav,
+                'can_manage_users' => $is_admin_nav, 'can_backup' => $is_admin_nav,
+                'can_view_log' => $is_admin_nav
+            ];
+        }
+        $active_page = isset($_GET['act']) ? $_GET['act'] : 'Dashboard';
+    ?>
+    
+    <ul class="sidebar-nav">
+        <li>
+            <a class="sidebar-link <?= in_array($active_page, ['Dashboard','Kamera']) ? 'active' : '' ?>" href="?act=Dashboard">
+                <i class="bi bi-house-door"></i> Dashboard
+            </a>
+        </li>
+        
+        <?php if(!empty($perms_nav['can_view_laporan'])): ?>
+        <li class="nav-item">
+            <a class="sidebar-link <?= in_array($active_page, ['Rekapitulasi','Amprahan']) ? '' : 'collapsed' ?>" href="#laporanCollapse" data-bs-toggle="collapse" role="button" aria-expanded="<?= in_array($active_page, ['Rekapitulasi','Amprahan']) ? 'true' : 'false' ?>">
+                <i class="bi bi-file-earmark-text"></i> <span style="flex-grow:1;">Laporan</span> <i class="bi bi-chevron-down" style="margin-right:0; font-size:12px;"></i>
+            </a>
+            <div class="collapse <?= in_array($active_page, ['Rekapitulasi','Amprahan']) ? 'show' : '' ?>" id="laporanCollapse">
+                <ul class="sidebar-submenu">
+                    <li><a class="submenu-link <?= $active_page == 'Rekapitulasi' ? 'active' : '' ?>" href="?act=Rekapitulasi"><i class="bi bi-pie-chart me-2"></i> Rekapitulasi</a></li>
+                    <li><a class="submenu-link <?= $active_page == 'Amprahan' ? 'active' : '' ?>" href="?act=Amprahan"><i class="bi bi-cash-stack me-2"></i> Amprahan Fee</a></li>
+                </ul>
+            </div>
+        </li>
+        <?php endif; ?>
+        
+        <li class="nav-item">
+            <a class="sidebar-link <?= in_array($active_page, ['MasterPSM','Users','Setting','SettingTTD','SettingFee','BackupRestore','LogAktivitas']) ? '' : 'collapsed' ?>" href="#settingsCollapse" data-bs-toggle="collapse" role="button" aria-expanded="<?= in_array($active_page, ['MasterPSM','Users','Setting','SettingTTD','SettingFee','BackupRestore','LogAktivitas']) ? 'true' : 'false' ?>">
+                <i class="bi bi-gear"></i> <span style="flex-grow:1;">Settings</span> <i class="bi bi-chevron-down" style="margin-right:0; font-size:12px;"></i>
+            </a>
+            <div class="collapse <?= in_array($active_page, ['MasterPSM','Users','Setting','SettingTTD','SettingFee','BackupRestore','LogAktivitas']) ? 'show' : '' ?>" id="settingsCollapse">
+                <ul class="sidebar-submenu">
+                    <li><a class="submenu-link <?= $active_page == 'MasterPSM' ? 'active' : '' ?>" href="?act=MasterPSM"><i class="bi bi-person-badge me-2"></i> Master PSM</a></li>
+                    <?php if(!empty($perms_nav['can_manage_users'])): ?><li><a class="submenu-link <?= $active_page == 'Users' ? 'active' : '' ?>" href="?act=Users"><i class="bi bi-people me-2"></i> Kelola Pengguna</a></li><?php endif; ?>
+                    <?php if(!empty($perms_nav['can_manage_fee'])): ?><li><a class="submenu-link <?= $active_page == 'SettingFee' ? 'active' : '' ?>" href="?act=SettingFee"><i class="bi bi-cash-coin me-2"></i> Master Fee PSM</a></li><?php endif; ?>
+                    <?php if($is_admin_nav): ?>
+                    <li><a class="submenu-link <?= $active_page == 'SettingTTD' ? 'active' : '' ?>" href="?act=SettingTTD"><i class="bi bi-pen me-2"></i> Tanda Tangan</a></li>
+                    <li><a class="submenu-link <?= $active_page == 'Setting' ? 'active' : '' ?>" href="?act=Setting"><i class="bi bi-sliders me-2"></i> Setting Aplikasi</a></li>
+                    <?php endif; ?>
+                    <?php if(!empty($perms_nav['can_backup'])): ?><li><a class="submenu-link <?= $active_page == 'BackupRestore' ? 'active' : '' ?>" href="?act=BackupRestore"><i class="bi bi-cloud-arrow-down me-2"></i> Backup</a></li><?php endif; ?>
+                    <?php if(!empty($perms_nav['can_view_log']) || $is_admin_nav): ?><li><a class="submenu-link <?= $active_page == 'LogAktivitas' ? 'active' : '' ?>" href="?act=LogAktivitas"><i class="bi bi-journal-text me-2"></i> Log Aktivitas</a></li><?php endif; ?>
+                </ul>
+            </div>
+        </li>
+    </ul>
+    
+    <div style="position: absolute; bottom: 30px; width: 100%; padding: 0 15px;">
+        <a class="sidebar-link" href="#" id="darkModeToggle" onclick="toggleDarkMode(event)">
+            <i class="bi bi-moon-stars-fill text-info" id="darkModeIcon"></i> <span id="darkModeText">Mode Gelap</span>
         </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav me-auto">
-<?php 
-    $perms_nav = isset($_SESSION['permissions_psm']) ? $_SESSION['permissions_psm'] : [];
-    $is_admin_nav = (isset($_SESSION['role_psm']) && $_SESSION['role_psm'] == 'Admin');
-    if (empty($perms_nav)) { // Fallback for old sessions
-        $perms_nav = [
-            'can_view_laporan' => true,
-            'can_manage_fee' => $is_admin_nav,
-            'can_manage_users' => $is_admin_nav,
-            'can_backup' => $is_admin_nav,
-            'can_view_log' => $is_admin_nav
-        ];
-    }
-?>
-                <li class="nav-item">
-                    <a class="nav-link <?= (isset($_GET['act']) && ($_GET['act']=='Dashboard' || $_GET['act']=='Kamera')) ? 'active fw-bold' : '' ?>" href="?act=Dashboard">Dashboard</a>
-                </li>
-                <?php if(!empty($perms_nav['can_view_laporan'])): ?>
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle <?= (isset($_GET['act']) && in_array($_GET['act'], ['Rekapitulasi', 'Amprahan'])) ? 'active fw-bold' : '' ?>" href="#" id="laporanDropdown" role="button" data-bs-toggle="dropdown">
-                        <i class="bi bi-file-earmark-bar-graph-fill me-1"></i> Laporan
-                    </a>
-                    <ul class="dropdown-menu shadow border-0" aria-labelledby="laporanDropdown" style="border-radius: 10px; min-width: 200px;">
-                        <li><a class="dropdown-item py-2" href="?act=Rekapitulasi"><i class="bi bi-pie-chart-fill me-2 text-primary"></i>Laporan Rekapitulasi</a></li>
-                        <li><a class="dropdown-item py-2" href="?act=Amprahan"><i class="bi bi-cash-stack me-2 text-success"></i>Amprahan Fee PSM</a></li>
-                    </ul>
-                </li>
-                <?php endif; ?>
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle <?= (isset($_GET['act']) && in_array($_GET['act'], ['MasterPSM', 'Users', 'Setting', 'SettingTTD', 'SettingFee', 'BackupRestore'])) ? 'active fw-bold' : '' ?>" href="#" id="settingsDropdown" role="button" data-bs-toggle="dropdown">
-                        <i class="bi bi-gear-fill me-1"></i> Pengaturan
-                    </a>
-                    <ul class="dropdown-menu shadow border-0" aria-labelledby="settingsDropdown" style="border-radius: 10px; min-width: 200px;">
-                        <li><a class="dropdown-item py-2" href="?act=MasterPSM"><i class="bi bi-person-badge-fill me-2 text-warning"></i>Data Master PSM</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <?php if(!empty($perms_nav['can_manage_users'])): ?>
-                        <li><a class="dropdown-item py-2" href="?act=Users"><i class="bi bi-people-fill me-2 text-primary"></i>Kelola Pengguna</a></li>
-                        <?php endif; ?>
-                        <?php if(!empty($perms_nav['can_manage_fee'])): ?>
-                        <li><a class="dropdown-item py-2" href="?act=SettingFee"><i class="bi bi-cash-coin me-2 text-warning"></i>Master Fee PSM</a></li>
-                        <?php endif; ?>
-                        <?php if($is_admin_nav): ?>
-                        <li><a class="dropdown-item py-2" href="?act=SettingTTD"><i class="bi bi-pen-fill me-2 text-success"></i>Master Tanda Tangan</a></li>
-                        <li><a class="dropdown-item py-2" href="?act=Setting"><i class="bi bi-building-fill-gear me-2 text-info"></i>Setting Aplikasi</a></li>
-                        <?php endif; ?>
-                        <?php if(!empty($perms_nav['can_backup'])): ?>
-                        <li><a class="dropdown-item py-2" href="?act=BackupRestore"><i class="bi bi-cloud-arrow-down-fill me-2 text-danger"></i>Backup & Restore</a></li>
-                        <?php endif; ?>
-                        <?php if(!empty($perms_nav['can_view_log']) || $is_admin_nav): ?>
-                        <li><a class="dropdown-item py-2" href="?act=LogAktivitas"><i class="bi bi-journal-text me-2 text-secondary"></i>Log Aktivitas</a></li>
-                        <?php endif; ?>
-                    </ul>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#aboutModal"><i class="bi bi-star-fill text-warning me-1"></i>Review Aplikasi</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#" id="darkModeToggle" onclick="toggleDarkMode(event)"><i class="bi bi-sun-fill text-warning me-1" id="darkModeIcon"></i><span id="darkModeText">Mode Terang</span></a>
-                </li>
-            </ul>
+        <a class="sidebar-link" href="#" data-bs-toggle="modal" data-bs-target="#aboutModal">
+            <i class="bi bi-info-circle"></i> Review Aplikasi
+        </a>
+    </div>
+</div>
 
-            <ul class="navbar-nav ms-auto">
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-                        <i class="bi bi-person-circle me-1"></i> <?= isset($_SESSION['nama_lengkap_psm']) && !empty($_SESSION['nama_lengkap_psm']) ? e($_SESSION['nama_lengkap_psm']) : (isset($_SESSION['ses_admin_pelaksanaanrujukanpsm']) ? ucfirst($_SESSION['ses_admin_pelaksanaanrujukanpsm']) : 'User') ?>
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                        <li><a class="dropdown-item py-2 text-primary" href="?act=Profile"><i class="bi bi-person-fill-gear me-2"></i>Profil</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item py-2 text-danger" href="logout.php"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
-                    </ul>
-                </li>
+<div class="topbar-custom">
+    <div class="topbar-welcome">
+        <span>Selamat Datang,</span>
+        <h4><?= isset($_SESSION['nama_lengkap_psm']) && !empty($_SESSION['nama_lengkap_psm']) ? e($_SESSION['nama_lengkap_psm']) : (isset($_SESSION['ses_admin_pelaksanaanrujukanpsm']) ? ucfirst($_SESSION['ses_admin_pelaksanaanrujukanpsm']) : 'User') ?></h4>
+    </div>
+    <div class="topbar-actions">
+        <div class="dropdown">
+            <a href="#" class="d-block link-dark text-decoration-none dropdown-toggle" id="dropdownUser" data-bs-toggle="dropdown" aria-expanded="false">
+                <?php $avatar_name = isset($_SESSION['nama_lengkap_psm']) && !empty($_SESSION['nama_lengkap_psm']) ? urlencode($_SESSION['nama_lengkap_psm']) : (isset($_SESSION['ses_admin_pelaksanaanrujukanpsm']) ? urlencode($_SESSION['ses_admin_pelaksanaanrujukanpsm']) : 'User'); ?>
+                <img src="images/logo.png" onerror="this.src='https://ui-avatars.com/api/?name=<?= $avatar_name ?>&background=0D8ABC&color=fff'" alt="User Avatar" width="40" height="40" class="rounded-circle border">
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end shadow text-small" aria-labelledby="dropdownUser">
+                <li><a class="dropdown-item" href="?act=Profile"><i class="bi bi-person me-2"></i>Profile</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item text-danger" href="logout.php"><i class="bi bi-box-arrow-right me-2"></i>Sign out</a></li>
             </ul>
         </div>
     </div>
-</nav>
+</div>
 
 <!-- Review Aplikasi Modal -->
 <div class="modal fade" id="aboutModal" tabindex="-1" aria-labelledby="aboutModalLabel" aria-hidden="true" style="z-index: 9999;">

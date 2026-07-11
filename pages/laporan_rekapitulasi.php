@@ -125,66 +125,81 @@
 </head>
 <body>
     <?php include "layout/navbar.php"; ?>
-    <div class="container-fluid py-4" style="max-width: 1200px;">
-        <h2 class="page-title"><i class="bi bi-bar-chart-fill me-2"></i> Laporan Rekapitulasi PSM</h2>
+    <div class="container-fluid mb-5 pb-4 px-4">
+        <div class="d-flex align-items-center mb-4 mt-2">
+            <div style="background: rgba(15, 118, 110, 0.1); width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                <i class="bi bi-bar-chart-fill" style="color: #0f766e; font-size: 20px;"></i>
+            </div>
+            <h4 class="mb-0" style="color: #1e293b; font-weight: 800; letter-spacing: -0.5px;">Laporan Rekapitulasi PSM</h4>
+        </div>
         
-        <div class="card-custom">
-            <form method="GET" action="index.php" class="row g-3 align-items-end">
-                <input type="hidden" name="act" value="Rekapitulasi">
-                <div class="col-md-3">
-                    <label class="form-label text-muted fw-bold mb-1" style="font-size: 13px;">Bulan</label>
-                    <select name="bulan" class="form-select" style="border-radius: 8px; border: 1.5px solid #cbd5e1;">
-                        <?php 
-                        $bulans = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-                        foreach($bulans as $index => $nama_bulan) {
-                            $val = str_pad($index + 1, 2, "0", STR_PAD_LEFT);
-                            $sel = ($val == $bulan) ? "selected" : "";
-                            echo "<option value='$val' $sel>$nama_bulan</option>";
-                        }
-                        ?>
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label text-muted fw-bold mb-1" style="font-size: 13px;">Tahun</label>
-                    <select name="tahun" class="form-select" style="border-radius: 8px; border: 1.5px solid #cbd5e1;">
-                        <?php 
-                        $thn_skrg = date('Y');
-                        for($t = $thn_skrg; $t >= 2023; $t--) {
-                            $sel = ($t == $tahun) ? "selected" : "";
-                            echo "<option value='$t' $sel>$t</option>";
-                        }
-                        ?>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-filter w-100 py-2"><i class="bi bi-funnel-fill me-1"></i> Tampilkan</button>
-                </div>
-            </form>
+        <div class="card mb-4" style="border: 1px solid rgba(0,0,0,0.05); box-shadow: 0 4px 20px rgba(0,0,0,0.03); border-radius: 12px;">
+            <div class="card-body p-4">
+                <form method="GET" action="index.php" class="row g-3 align-items-end">
+                    <input type="hidden" name="act" value="Rekapitulasi">
+                    <div class="col-md-3">
+                        <label class="form-label text-muted fw-bold mb-2" style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Bulan</label>
+                        <select name="bulan" class="form-select" style="border-radius: 8px;">
+                            <?php 
+                            $bulans = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+                            foreach($bulans as $index => $nama_bulan) {
+                                $val = str_pad($index + 1, 2, "0", STR_PAD_LEFT);
+                                $sel = ($val == $bulan) ? "selected" : "";
+                                echo "<option value='$val' $sel>$nama_bulan</option>";
+                            }
+                            ?>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label text-muted fw-bold mb-2" style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Tahun</label>
+                        <select name="tahun" class="form-select" style="border-radius: 8px;">
+                            <?php 
+                            $thn_skrg = date('Y');
+                            for($t = $thn_skrg; $t >= 2023; $t--) {
+                                $sel = ($t == $tahun) ? "selected" : "";
+                                echo "<option value='$t' $sel>$t</option>";
+                            }
+                            ?>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-primary w-100 rounded-pill shadow-sm" style="background:#0f766e; border:none; font-weight: 600;"><i class="bi bi-funnel-fill me-2"></i> Tampilkan Data</button>
+                    </div>
+                </form>
+            </div>
         </div>
 
-        <div class="row">
-            <div class="col-md-8">
-                <div class="card-custom">
-                    <h5 class="fw-bold mb-4" style="color: #334155;">Grafik Kinerja PSM</h5>
-                    <canvas id="psmChart" height="120"></canvas>
+        <div class="row g-4">
+            <div class="col-lg-8 col-md-12">
+                <div class="card h-100" style="border: 1px solid rgba(0,0,0,0.05); box-shadow: 0 4px 20px rgba(0,0,0,0.03); border-radius: 12px;">
+                    <div class="card-header bg-white border-bottom-0 pt-4 pb-2 px-4">
+                        <h6 class="fw-bold mb-0" style="color: #334155;"><i class="bi bi-graph-up-arrow text-info me-2"></i>Grafik Kinerja PSM</h6>
+                    </div>
+                    <div class="card-body px-4 pb-4">
+                        <canvas id="psmChart" height="120"></canvas>
+                    </div>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="card-custom">
-                    <h5 class="fw-bold mb-3" style="color: #334155;"><i class="bi bi-trophy-fill text-warning me-2"></i> Peringkat PSM</h5>
-                    <div class="table-responsive">
-                        <table class="table table-hover table-custom mb-0">
-                            <thead>
-                                <tr>
-                                    <th width="10%">#</th>
-                                    <th>Nama PSM</th>
-                                    <th class="text-center">Total Pasien</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?= $table_data ?>
-                            </tbody>
-                        </table>
+            <div class="col-lg-4 col-md-12">
+                <div class="card h-100" style="border: 1px solid rgba(0,0,0,0.05); box-shadow: 0 4px 20px rgba(0,0,0,0.03); border-radius: 12px;">
+                    <div class="card-header bg-white border-bottom-0 pt-4 pb-2 px-4">
+                        <h6 class="fw-bold mb-0" style="color: #334155;"><i class="bi bi-trophy-fill text-warning me-2"></i>Peringkat PSM</h6>
+                    </div>
+                    <div class="card-body px-4 pb-4">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-custom mb-0 align-middle">
+                                <thead style="border-bottom: 2px solid #e2e8f0;">
+                                    <tr>
+                                        <th width="15%" class="text-center py-3">#</th>
+                                        <th class="py-3">Nama PSM</th>
+                                        <th class="text-center py-3">Total Pasien</th>
+                                    </tr>
+                                </thead>
+                                <tbody style="border-top: none;">
+                                    <?= $table_data ?>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -192,38 +207,41 @@
 
         <div class="row mt-4">
             <div class="col-12">
-                <div class="card-custom">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="fw-bold m-0" style="color: #334155;"><i class="bi bi-file-earmark-spreadsheet-fill text-success me-2"></i> DATA REKAP PASIEN RUJUKAN PSM</h5>
-                        <div>
-                            <button class="btn btn-outline-primary btn-sm me-2" onclick="exportExcel('tableRekap', 'Rekap_Pasien_PSM_<?= $bulan ?>_<?= $tahun ?>')"><i class="bi bi-file-earmark-excel-fill me-1"></i> Export Excel</button>
-                            <button class="btn btn-outline-success btn-sm" onclick="cetakArea('areaRekap', 'DATA REKAP PASIEN RUJUKAN PSM')"><i class="bi bi-printer-fill me-1"></i> Cetak</button>
+                <div class="card" style="border: 1px solid rgba(0,0,0,0.05); box-shadow: 0 4px 20px rgba(0,0,0,0.03); border-radius: 12px;">
+                    <div class="card-header bg-white border-bottom-0 pt-4 pb-3 px-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                        <h6 class="fw-bold mb-0" style="color: #334155;"><i class="bi bi-file-earmark-spreadsheet-fill text-success me-2"></i>Data Rekap Pasien Rujukan PSM</h6>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-light text-success btn-sm px-3 rounded-pill border" onclick="exportExcel('tableRekap', 'Rekap_Pasien_PSM_<?= $bulan ?>_<?= $tahun ?>')" style="font-weight: 600;"><i class="bi bi-file-earmark-excel-fill me-1"></i> Excel</button>
+                            <button class="btn btn-light text-primary btn-sm px-3 rounded-pill border" onclick="cetakArea('areaRekap', 'DATA REKAP PASIEN RUJUKAN PSM')" style="font-weight: 600;"><i class="bi bi-printer-fill me-1"></i> Cetak</button>
                         </div>
                     </div>
-                    <div class="table-responsive" id="areaRekap">
-                        <table id="tableRekap" class="table table-bordered table-hover table-custom" style="font-size: 12px; white-space: nowrap;">
-                            <thead class="text-center align-middle">
-                                <tr>
-                                    <th>NO</th>
-                                    <th>TGL MASUK</th>
-                                    <th>TGL PULANG</th>
-                                    <th>NO RM</th>
-                                    <th>NAMA PASIEN</th>
-                                    <th>JENIS PERAWATAN</th>
-                                    <th>JAMINAN</th>
-                                    <th>NAMA PSM</th>
-                                    <th>ALAMAT</th>
-                                    <th>NO HP</th>
-                                    <th>BILLING</th>
-                                    <th>FEE</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?= $detail_rows ?>
-                            </tbody>
-                        </table>
+                    <div class="card-body px-4 pb-4 pt-0">
+                        <div class="table-responsive" id="areaRekap">
+                            <table id="tableRekap" class="table table-hover table-custom align-middle" style="font-size: 12px; white-space: nowrap; min-width: 1000px;">
+                                <thead class="text-center" style="border-bottom: 2px solid #e2e8f0;">
+                                    <tr>
+                                        <th class="py-3">NO</th>
+                                        <th class="py-3">TGL MASUK</th>
+                                        <th class="py-3">TGL PULANG</th>
+                                        <th class="py-3">NO RM</th>
+                                        <th class="py-3">NAMA PASIEN</th>
+                                        <th class="py-3">JENIS PERAWATAN</th>
+                                        <th class="py-3">JAMINAN</th>
+                                        <th class="py-3">NAMA PSM</th>
+                                        <th class="py-3">ALAMAT</th>
+                                        <th class="py-3">NO HP</th>
+                                        <th class="py-3">BILLING</th>
+                                        <th class="py-3">FEE</th>
+                                    </tr>
+                                </thead>
+                                <tbody style="border-top: none;">
+                                    <?= $detail_rows ?>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
+            </div>
         </div>
     </div>
 

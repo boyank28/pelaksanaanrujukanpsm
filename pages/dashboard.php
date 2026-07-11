@@ -82,67 +82,99 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style type="text/css">
         body {
-            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%) !important;
+            background: linear-gradient(135deg, #f0fdfa 0%, #e0f2fe 100%) !important;
             font-family: 'Plus Jakarta Sans', sans-serif !important;
-            color: #334155 !important;
+            color: #1e293b !important;
             padding-bottom: 40px;
             font-size: 13px !important;
         }
         .content-wrapper {
-            background: #ffffff !important;
-            border-radius: 12px !important;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05) !important;
-            padding: 25px !important;
+            background: rgba(255, 255, 255, 0.8) !important;
+            backdrop-filter: blur(12px) !important;
+            -webkit-backdrop-filter: blur(12px) !important;
+            border-radius: 16px !important;
+            box-shadow: 0 10px 30px -5px rgba(15, 118, 110, 0.1), 0 8px 10px -6px rgba(15, 118, 110, 0.05) !important;
+            padding: 30px !important;
             max-width: 1200px !important;
-            border: 1px solid #e2e8f0 !important;
+            border: 1px solid rgba(255, 255, 255, 0.5) !important;
             margin: auto;
         }
         .stat-card {
-            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%) !important;
+            background: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%) !important;
             color: white !important;
-            border-radius: 8px;
-            padding: 12px 20px;
-            margin-bottom: 15px;
-            box-shadow: 0 4px 6px -1px rgba(2, 132, 199, 0.2) !important;
+            border-radius: 12px;
+            padding: 20px 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 15px -3px rgba(15, 118, 110, 0.3) !important;
             display: flex;
             align-items: center;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 150px;
+            height: 150px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
         }
         .stat-card.green {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
-            box-shadow: 0 4px 6px -1px rgba(5, 150, 105, 0.2) !important;
+            background: linear-gradient(135deg, #0d9488 0%, #059669 100%) !important;
+            box-shadow: 0 10px 15px -3px rgba(13, 148, 136, 0.3) !important;
         }
         .stat-card h3 {
             margin: 0;
-            font-size: 24px;
-            font-weight: 700;
-            margin-right: 15px;
+            font-size: 32px;
+            font-weight: 800;
+            margin-right: 20px;
+            letter-spacing: -1px;
         }
         .stat-card p {
             margin: 0;
-            font-size: 13px;
+            font-size: 14px;
             opacity: 0.9;
-            font-weight: 500;
+            font-weight: 600;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.7) !important;
+            backdrop-filter: blur(10px) !important;
+            border: 1px solid rgba(255, 255, 255, 0.4) !important;
         }
         table {
             width: 100% !important;
             border-collapse: collapse !important;
             margin-top: 15px;
+            background: rgba(255,255,255,0.5);
+            border-radius: 12px;
+            overflow: hidden;
         }
         th {
-            background: #f1f5f9;
+            background: rgba(15, 118, 110, 0.05);
             color: #0f766e;
             font-weight: 700;
-            padding: 12px;
-            border-bottom: 2px solid #cbd5e1;
+            padding: 15px 12px;
+            border-bottom: 2px solid rgba(15, 118, 110, 0.1);
             text-align: left;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.5px;
         }
         td {
-            padding: 12px;
-            border-bottom: 1px solid #e2e8f0;
-            color: #1e293b;
+            padding: 15px 12px;
+            border-bottom: 1px solid rgba(226, 232, 240, 0.5);
+            color: #334155;
+            vertical-align: middle;
         }
         tr:hover {
-            background: #f8fafc;
+            background: rgba(255, 255, 255, 0.8);
         }
         .btn-view {
             background: #0ea5e9;
@@ -163,38 +195,41 @@
         }
         .search-box {
             width: 100%;
-            padding: 10px 15px;
-            border: 1.5px solid #cbd5e1;
-            border-radius: 8px;
+            padding: 12px 20px;
+            border: 1.5px solid rgba(203, 213, 225, 0.5);
+            border-radius: 10px;
             font-family: inherit;
             outline: none;
-            transition: all 0.2s;
+            transition: all 0.3s;
             margin-bottom: 15px;
+            background: rgba(255,255,255,0.8);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
         }
         .search-box:focus {
             border-color: #0f766e;
-            box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.15);
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.15);
         }
-
         .header-section {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
         }
         .btn-nav {
-            background-color: #e2e8f0 !important;
-            color: #475569 !important;
-            border: 1px solid #cbd5e1 !important;
+            background: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%) !important;
+            color: #fff !important;
+            border: none !important;
             font-weight: 600 !important;
-            padding: 8px 16px !important;
-            border-radius: 8px !important;
+            padding: 10px 20px !important;
+            border-radius: 10px !important;
             text-decoration: none;
-            transition: all 0.2s;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px -1px rgba(15, 118, 110, 0.2);
         }
         .btn-nav:hover {
-            background-color: #cbd5e1 !important;
-            color: #1e293b !important;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 10px -2px rgba(15, 118, 110, 0.3);
             text-decoration: none;
         }
         .pagination .page-item.active .page-link {

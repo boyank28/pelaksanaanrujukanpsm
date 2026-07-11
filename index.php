@@ -1,6 +1,9 @@
 <?php
  session_start();
  
+ require_once('conf/command.php');
+ require_once('conf/conf.php');
+
  // Session Timeout Logic (15 menit = 900 detik)
  if (isset($_SESSION['ses_admin_pelaksanaanrujukanpsm'])) {
      $timeout = 900; 
@@ -12,9 +15,6 @@
      }
      $_SESSION['last_action'] = time(); // update last activity time
  }
- 
- require_once('conf/command.php');
- require_once('conf/conf.php');
  header("Expires: Mon, 26 Jul 1997 05:00:00 GMT"); 
  header("Last-Modified: ".gmdate("D, d M Y H:i:s")." GMT"); 
  header("Cache-Control: no-store, no-cache, must-revalidate"); 

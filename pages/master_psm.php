@@ -124,172 +124,194 @@
 </head>
 <body>
     <?php include "layout/navbar.php"; ?>
-    <div class="container mb-5 pb-4">
-        <h4 class="mb-4" style="color: #0f766e; font-weight: 700;">Data Master PSM</h4>
+    <div class="container-fluid mb-5 pb-4 px-4">
+        <div class="d-flex align-items-center mb-4 mt-2">
+            <div style="background: rgba(15, 118, 110, 0.1); width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                <i class="bi bi-person-badge-fill" style="color: #0f766e; font-size: 20px;"></i>
+            </div>
+            <h4 class="mb-0" style="color: #1e293b; font-weight: 800; letter-spacing: -0.5px;">Data Master PSM</h4>
+        </div>
         
-        <div class="row">
-            <div class="col-md-4">
-                <div class="card p-3">
-                    <h6 class="fw-bold mb-2"><?= $data_edit ? 'Edit PSM' : 'Tambah PSM Baru' ?></h6>
-                    <form method="POST" action="?act=MasterPSM&aksi=<?= $data_edit ? 'edit' : 'simpan' ?>" enctype="multipart/form-data">
-                        <?= csrf_input() ?>
-                        <?php if($data_edit): ?>
-                            <input type="hidden" name="id_psm" value="<?= e($data_edit['id_psm']) ?>">
-                        <?php endif; ?>
-                        
-                        <div class="mb-2">
-                            <label style="font-size: 12px; font-weight: 600; color:#475569;">Nama PSM</label>
-                            <input type="text" name="nama_psm" class="form-control form-control-sm" value="<?= $data_edit ? e($data_edit['nama_psm']) : '' ?>" required>
-                        </div>
-                        <div class="mb-2">
-                            <label style="font-size: 12px; font-weight: 600; color:#475569;">No. Telepon</label>
-                            <input type="text" name="no_telp" class="form-control form-control-sm" value="<?= $data_edit ? e($data_edit['no_telp']) : '' ?>">
-                        </div>
-                        <div class="mb-2">
-                            <label style="font-size: 12px; font-weight: 600; color:#475569;">Alamat</label>
-                            <textarea name="alamat" class="form-control form-control-sm" rows="2"><?= $data_edit ? e($data_edit['alamat']) : '' ?></textarea>
-                        </div>
-                        <div class="mb-2">
-                            <label style="font-size: 12px; font-weight: 600; color:#475569;">Status</label>
-                            <select name="status" class="form-control form-control-sm">
-                                <option value="Aktif" <?= ($data_edit && $data_edit['status']=='Aktif') ? 'selected' : '' ?>>Aktif</option>
-                                <option value="Nonaktif" <?= ($data_edit && $data_edit['status']=='Nonaktif') ? 'selected' : '' ?>>Nonaktif</option>
-                            </select>
-                        </div>
-                        <div class="mb-2">
-                            <label style="font-size: 12px; font-weight: 600; color:#475569;">Foto PSM</label>
-                            <?php if($data_edit && $data_edit['foto']): ?>
-                                <div class="mb-1">
-                                    <img src="foto_psm/<?= e($data_edit['foto']) ?>" width="60" style="border-radius:6px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
-                                </div>
+        <div class="row g-4">
+            <div class="col-lg-4 col-md-12">
+                <div class="card h-100" style="border: 1px solid rgba(0,0,0,0.05); box-shadow: 0 4px 20px rgba(0,0,0,0.03);">
+                    <div class="card-header bg-white border-bottom-0 pt-4 pb-2 px-4">
+                        <h6 class="fw-bold mb-0" style="color: #334155;"><i class="bi <?= $data_edit ? 'bi-pencil-square text-warning' : 'bi-person-plus-fill text-primary' ?> me-2"></i><?= $data_edit ? 'Edit Data PSM' : 'Tambah PSM Baru' ?></h6>
+                    </div>
+                    <div class="card-body px-4 pb-4 pt-3">
+                        <form method="POST" action="?act=MasterPSM&aksi=<?= $data_edit ? 'edit' : 'simpan' ?>" enctype="multipart/form-data">
+                            <?= csrf_input() ?>
+                            <?php if($data_edit): ?>
+                                <input type="hidden" name="id_psm" value="<?= e($data_edit['id_psm']) ?>">
                             <?php endif; ?>
-                            <ul class="nav nav-tabs mb-2" id="fotoTabs" role="tablist">
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link active" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload" type="button" role="tab" onclick="stopWebcam()" style="font-size:12px;">Upload File</button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="kamera-tab" data-bs-toggle="tab" data-bs-target="#kamera" type="button" role="tab" onclick="startWebcam()" style="font-size:12px;">Gunakan Kamera</button>
-                                </li>
-                            </ul>
                             
-                            <div class="tab-content" id="fotoTabsContent">
-                                <div class="tab-pane fade show active" id="upload" role="tabpanel">
-                                    <input type="file" name="foto" class="form-control" accept="image/*">
-                                    <small class="text-muted mt-1 d-block">Pilih file gambar dari perangkat Anda.</small>
-                                </div>
-                                <div class="tab-pane fade" id="kamera" role="tabpanel">
-                                    <div id="my_camera" style="margin: 0 auto; border-radius: 8px; overflow: hidden; border: 2px solid #cbd5e1; width: 100%; max-width: 320px; min-height: 240px; background:#e2e8f0;"></div>
-                                    <input type="hidden" name="foto_base64" id="foto_base64">
-                                    <div class="text-center mt-2" id="kamera_controls">
-                                        <button type="button" class="btn btn-sm btn-info text-white w-100" onclick="take_snapshot()"><i class="bi bi-camera"></i> Ambil Foto</button>
+                            <div class="mb-3">
+                                <label class="form-label text-muted" style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Nama PSM</label>
+                                <input type="text" name="nama_psm" class="form-control" value="<?= $data_edit ? e($data_edit['nama_psm']) : '' ?>" placeholder="Masukkan nama lengkap PSM" required style="border-radius: 8px;">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted" style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">No. Telepon</label>
+                                <input type="text" name="no_telp" class="form-control" value="<?= $data_edit ? e($data_edit['no_telp']) : '' ?>" placeholder="Contoh: 08123456789" style="border-radius: 8px;">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted" style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Alamat</label>
+                                <textarea name="alamat" class="form-control" rows="3" placeholder="Alamat lengkap domisili" style="border-radius: 8px; resize: none;"><?= $data_edit ? e($data_edit['alamat']) : '' ?></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted" style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Status</label>
+                                <select name="status" class="form-select" style="border-radius: 8px;">
+                                    <option value="Aktif" <?= ($data_edit && $data_edit['status']=='Aktif') ? 'selected' : '' ?>>Aktif</option>
+                                    <option value="Nonaktif" <?= ($data_edit && $data_edit['status']=='Nonaktif') ? 'selected' : '' ?>>Nonaktif</option>
+                                </select>
+                            </div>
+                            <div class="mb-4">
+                                <label class="form-label text-muted" style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Foto PSM</label>
+                                <?php if($data_edit && $data_edit['foto']): ?>
+                                    <div class="mb-2 d-flex align-items-center gap-3 p-2 border rounded-3 bg-light">
+                                        <img src="foto_psm/<?= e($data_edit['foto']) ?>" width="40" height="40" style="border-radius:50%; object-fit:cover; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+                                        <span style="font-size: 12px;" class="text-secondary">Foto saat ini</span>
                                     </div>
-                                    <div id="results" class="mt-2 text-center" style="display:none;"></div>
-                                    <div class="text-center mt-2" id="kamera_retake" style="display:none;">
-                                        <button type="button" class="btn btn-sm btn-secondary w-100" onclick="retake_snapshot()"><i class="bi bi-arrow-counterclockwise"></i> Ulangi Foto</button>
+                                <?php endif; ?>
+                                <ul class="nav nav-pills nav-fill mb-3" id="fotoTabs" role="tablist" style="background: #f1f5f9; border-radius: 8px; padding: 4px;">
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link active py-1" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload" type="button" role="tab" onclick="stopWebcam()" style="font-size:12px; font-weight:600; border-radius: 6px;">Upload File</button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link py-1" id="kamera-tab" data-bs-toggle="tab" data-bs-target="#kamera" type="button" role="tab" onclick="startWebcam()" style="font-size:12px; font-weight:600; border-radius: 6px;">Kamera</button>
+                                    </li>
+                                </ul>
+                                
+                                <div class="tab-content" id="fotoTabsContent">
+                                    <div class="tab-pane fade show active" id="upload" role="tabpanel">
+                                        <input type="file" name="foto" class="form-control" accept="image/*" style="border-radius: 8px;">
+                                        <small class="text-muted mt-2 d-block"><i class="bi bi-info-circle me-1"></i>Format yang didukung: JPG, PNG.</small>
+                                    </div>
+                                    <div class="tab-pane fade" id="kamera" role="tabpanel">
+                                        <div id="my_camera" style="margin: 0 auto; border-radius: 8px; overflow: hidden; border: 1px solid #cbd5e1; width: 100%; max-width: 100%; min-height: 200px; background:#e2e8f0;"></div>
+                                        <input type="hidden" name="foto_base64" id="foto_base64">
+                                        <div class="text-center mt-3" id="kamera_controls">
+                                            <button type="button" class="btn btn-info text-white w-100 rounded-pill shadow-sm" onclick="take_snapshot()"><i class="bi bi-camera me-2"></i> Ambil Foto</button>
+                                        </div>
+                                        <div id="results" class="mt-3 text-center" style="display:none;"></div>
+                                        <div class="text-center mt-3" id="kamera_retake" style="display:none;">
+                                            <button type="button" class="btn btn-outline-secondary w-100 rounded-pill" onclick="retake_snapshot()"><i class="bi bi-arrow-counterclockwise me-2"></i> Ulangi Foto</button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        <button type="submit" class="btn btn-primary w-100" style="background:#0f766e; border:none;">Simpan</button>
-                        <?php if($data_edit): ?>
-                            <a href="?act=MasterPSM" class="btn btn-light w-100 mt-2">Batal</a>
-                        <?php endif; ?>
-                    </form>
+                            <div class="d-grid gap-2 mt-4">
+                                <button type="submit" class="btn btn-primary rounded-pill shadow-sm" style="background:#0f766e; border:none; font-weight: 600;"><i class="bi <?= $data_edit ? 'bi-save2' : 'bi-plus-circle' ?> me-2"></i><?= $data_edit ? 'Simpan Perubahan' : 'Simpan PSM' ?></button>
+                                <?php if($data_edit): ?>
+                                    <a href="?act=MasterPSM" class="btn btn-light rounded-pill border" style="font-weight: 600;">Batal Edit</a>
+                                <?php endif; ?>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
             
-            <div class="col-md-8">
-                <div class="card p-4">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h6 class="fw-bold mb-0" style="color:#0f766e;">Daftar PSM</h6>
+            <div class="col-lg-8 col-md-12">
+                <div class="card h-100" style="border: 1px solid rgba(0,0,0,0.05); box-shadow: 0 4px 20px rgba(0,0,0,0.03);">
+                    <div class="card-header bg-white border-bottom-0 pt-4 pb-3 px-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                        <h6 class="fw-bold mb-0" style="color:#334155;"><i class="bi bi-list-ul text-info me-2"></i>Daftar PSM Terdaftar</h6>
                         <div class="d-flex align-items-center gap-2">
-                            <a href="pages/export_master_psm.php?keyword=<?= isset($_GET['keyword']) ? urlencode($_GET['keyword']) : '' ?>" class="btn btn-outline-success btn-sm px-2" title="Export Excel Semua Data"><i class="bi bi-file-earmark-excel-fill"></i></a>
-                            <a href="pages/cetak_master_psm.php?keyword=<?= isset($_GET['keyword']) ? urlencode($_GET['keyword']) : '' ?>" target="_blank" class="btn btn-outline-primary btn-sm px-2" title="Cetak Semua Data"><i class="bi bi-printer-fill"></i></a>
-                            <form method="GET" action="index.php" class="d-flex mb-0" style="width:220px;">
+                            <a href="pages/export_master_psm.php?keyword=<?= isset($_GET['keyword']) ? urlencode($_GET['keyword']) : '' ?>" class="btn btn-light text-success btn-sm px-3 rounded-pill border" title="Export Excel Semua Data"><i class="bi bi-file-earmark-excel-fill me-1"></i> Excel</a>
+                            <a href="pages/cetak_master_psm.php?keyword=<?= isset($_GET['keyword']) ? urlencode($_GET['keyword']) : '' ?>" target="_blank" class="btn btn-light text-primary btn-sm px-3 rounded-pill border" title="Cetak Semua Data"><i class="bi bi-printer-fill me-1"></i> Cetak</a>
+                            <form method="GET" action="index.php" class="d-flex mb-0 ms-2">
                                 <input type="hidden" name="act" value="MasterPSM">
-                                <input type="text" name="keyword" class="form-control form-control-sm me-1" placeholder="Cari nama PSM..." value="<?= isset($_GET['keyword']) ? e($_GET['keyword']) : '' ?>">
-                                <button type="submit" class="btn btn-sm btn-primary" style="background:#0f766e; border:none;"><i class="bi bi-search"></i></button>
+                                <div class="input-group input-group-sm shadow-sm" style="border-radius: 20px; overflow: hidden;">
+                                    <input type="text" name="keyword" class="form-control border-0 bg-light" placeholder="Cari nama/alamat..." value="<?= isset($_GET['keyword']) ? e($_GET['keyword']) : '' ?>" style="box-shadow: none;">
+                                    <button type="submit" class="btn btn-light border-0 bg-light text-primary"><i class="bi bi-search"></i></button>
+                                </div>
                             </form>
                         </div>
                     </div>
-                    <div id="areaCetakPSM" class="table-responsive">
-                    <table id="tableMasterPSM" class="table table-hover table-custom">
-                        <thead>
-                            <tr>
-                                <th class="no-sort">No</th>
-                                <th class="no-sort">Foto</th>
-                                <th>Nama PSM</th>
-                                <th>Telepon</th>
-                                <th>Alamat</th>
-                                <th>Status</th>
-                                <th class="no-sort">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php
-                                $batas = 5; 
-                                $halaman = isset($_GET['halaman']) ? (int)$_GET['halaman'] : 1;
-                                $halaman_awal = ($halaman > 1) ? ($halaman * $batas) - $batas : 0;
-                                
-                                $keyword = isset($_GET['keyword']) ? validTeks4($_GET['keyword'], 50) : '';
-                                $whereClause = "";
-                                if($keyword != "") {
-                                    $whereClause = "WHERE nama_psm LIKE '%$keyword%' OR alamat LIKE '%$keyword%' OR no_telp LIKE '%$keyword%'";
-                                }
-                                
-                                $query_semua = bukaquery2("SELECT id_psm FROM master_psm $whereClause");
-                                $jumlah_data = mysqli_num_rows($query_semua);
-                                $total_halaman = ceil($jumlah_data / $batas);
-                                
-                                $no = $halaman_awal + 1;
-                                $query = bukaquery2("SELECT * FROM master_psm $whereClause ORDER BY nama_psm ASC LIMIT $halaman_awal, $batas");
-                                if(mysqli_num_rows($query) > 0) {
-                                    while($r = mysqli_fetch_array($query)) {
-                                        echo "<tr>
-                                                <td class='align-middle'>".$no++."</td>
-                                                <td class='align-middle'>".($r['foto'] ? "<img src='foto_psm/".e($r['foto'])."' width='40' height='40' style='border-radius:50%; object-fit:cover; border:2px solid #cbd5e1;'>" : "<div style='width:40px; height:40px; border-radius:50%; background:#e2e8f0; display:flex; align-items:center; justify-content:center; border:2px solid #cbd5e1;'><i class='bi bi-person text-secondary' style='font-size:20px;'></i></div>")."</td>
-                                                <td class='fw-bold align-middle'>".e($r['nama_psm'])."</td>
-                                                <td class='align-middle'>".e($r['no_telp'])."</td>
-                                                <td class='align-middle'>".e($r['alamat'])."</td>
-                                                <td class='align-middle'>".($r['status'] == 'Aktif' ? "<span class='badge bg-success'>Aktif</span>" : "<span class='badge bg-secondary'>Nonaktif</span>")."</td>
-                                                <td class='align-middle'>
-                                                    <a href='?act=MasterPSM&aksi=form_edit&id=".urlencode($r['id_psm'])."' class='btn btn-sm btn-outline-primary'><i class='bi bi-pencil'></i></a>
-                                                    <form method='POST' action='?act=MasterPSM&aksi=hapus' style='display:inline;' onsubmit='return confirm(\"Yakin ingin menghapus?\")'>
-                                                        ".csrf_input()."
-                                                        <input type='hidden' name='id' value='".e($r['id_psm'])."'>
-                                                        <button type='submit' class='btn btn-sm btn-outline-danger'><i class='bi bi-trash'></i></button>
-                                                    </form>
-                                                </td>
-                                              </tr>";
-                                    }
-                                } else {
-                                    echo "<tr><td colspan='6' class='text-center'>Belum ada data</td></tr>";
-                                }
-                            ?>
-                        </tbody>
-                    </table>
-                    </div>
+                    <div class="card-body px-4 pb-4 pt-0">
+                        <div id="areaCetakPSM" class="table-responsive">
+                            <table id="tableMasterPSM" class="table table-hover table-custom align-middle" style="min-width: 600px;">
+                                <thead style="border-bottom: 2px solid #e2e8f0;">
+                                    <tr>
+                                        <th class="no-sort text-center px-3 py-3" style="width: 50px;">No</th>
+                                        <th class="no-sort text-center py-3" style="width: 70px;">Foto</th>
+                                        <th class="py-3">Nama Lengkap</th>
+                                        <th class="py-3">No. Telepon</th>
+                                        <th class="py-3">Alamat Domisili</th>
+                                        <th class="text-center py-3" style="width: 100px;">Status</th>
+                                        <th class="no-sort text-center py-3" style="width: 120px;">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody style="border-top: none;">
+                                    <?php
+                                        $batas = 7; 
+                                        $halaman = isset($_GET['halaman']) ? (int)$_GET['halaman'] : 1;
+                                        $halaman_awal = ($halaman > 1) ? ($halaman * $batas) - $batas : 0;
+                                        
+                                        $keyword = isset($_GET['keyword']) ? validTeks4($_GET['keyword'], 50) : '';
+                                        $whereClause = "";
+                                        if($keyword != "") {
+                                            $whereClause = "WHERE nama_psm LIKE '%$keyword%' OR alamat LIKE '%$keyword%' OR no_telp LIKE '%$keyword%'";
+                                        }
+                                        
+                                        $query_semua = bukaquery2("SELECT id_psm FROM master_psm $whereClause");
+                                        $jumlah_data = mysqli_num_rows($query_semua);
+                                        $total_halaman = ceil($jumlah_data / $batas);
+                                        
+                                        $no = $halaman_awal + 1;
+                                        $query = bukaquery2("SELECT * FROM master_psm $whereClause ORDER BY nama_psm ASC LIMIT $halaman_awal, $batas");
+                                        if(mysqli_num_rows($query) > 0) {
+                                            while($r = mysqli_fetch_array($query)) {
+                                                echo "<tr>
+                                                        <td class='text-center text-muted'>".$no++."</td>
+                                                        <td class='text-center'>".($r['foto'] ? "<img src='foto_psm/".e($r['foto'])."' width='42' height='42' style='border-radius:50%; object-fit:cover; border:2px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1);'>" : "<div style='width:42px; height:42px; border-radius:50%; background:#f1f5f9; display:inline-flex; align-items:center; justify-content:center; border:2px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.05);'><i class='bi bi-person text-slate-400' style='font-size:22px; color:#94a3b8;'></i></div>")."</td>
+                                                        <td class='fw-bold' style='color:#334155;'>".e($r['nama_psm'])."</td>
+                                                        <td><span class='text-muted'><i class='bi bi-telephone me-1' style='font-size:11px;'></i>".(empty($r['no_telp']) ? '-' : e($r['no_telp']))."</span></td>
+                                                        <td><span class='text-muted text-truncate d-inline-block' style='max-width:200px;' title='".e($r['alamat'])."'>".(empty($r['alamat']) ? '-' : e($r['alamat']))."</span></td>
+                                                        <td class='text-center'>".($r['status'] == 'Aktif' ? "<span class='badge bg-success-subtle text-success px-2 py-1 rounded-pill border border-success-subtle' style='font-weight:600;'>Aktif</span>" : "<span class='badge bg-secondary-subtle text-secondary px-2 py-1 rounded-pill border border-secondary-subtle' style='font-weight:600;'>Nonaktif</span>")."</td>
+                                                        <td class='text-center'>
+                                                            <div class='btn-group shadow-sm'>
+                                                                <a href='?act=MasterPSM&aksi=form_edit&id=".urlencode($r['id_psm'])."' class='btn btn-sm btn-light border text-primary' title='Edit'><i class='bi bi-pencil-square'></i></a>
+                                                                <form method='POST' action='?act=MasterPSM&aksi=hapus' style='display:inline;' onsubmit='return confirm(\"Yakin ingin menghapus data ".e($r['nama_psm'])."?\")'>
+                                                                    ".csrf_input()."
+                                                                    <input type='hidden' name='id' value='".e($r['id_psm'])."'>
+                                                                    <button type='submit' class='btn btn-sm btn-light border text-danger' title='Hapus'><i class='bi bi-trash3'></i></button>
+                                                                </form>
+                                                            </div>
+                                                        </td>
+                                                      </tr>";
+                                            }
+                                        } else {
+                                            echo "<tr><td colspan='7' class='text-center py-5 text-muted'>
+                                                <i class='bi bi-inboxes text-secondary' style='font-size: 40px; opacity: 0.5;'></i><br>
+                                                <span class='d-block mt-2'>Data PSM tidak ditemukan.</span>
+                                            </td></tr>";
+                                        }
+                                    ?>
+                                </tbody>
+                            </table>
+                        </div>
 
-                    <?php if($total_halaman > 1): ?>
-                    <nav class="mt-3">
-                        <ul class="pagination pagination-sm justify-content-center">
-                            <?php 
-                                $keyword_param = isset($_GET['keyword']) ? '&keyword='.urlencode($_GET['keyword']) : '';
-                            ?>
-                            <li class="page-item <?= ($halaman <= 1) ? 'disabled' : '' ?>">
-                                <a class="page-link" href="?act=MasterPSM<?= $keyword_param ?>&halaman=<?= $halaman - 1 ?>">Sebelumnya</a>
-                            </li>
-                            <?php for($x=1; $x<=$total_halaman; $x++): ?>
-                                <li class="page-item <?= ($halaman == $x) ? 'active' : '' ?>">
-                                    <a class="page-link" href="?act=MasterPSM<?= $keyword_param ?>&halaman=<?= $x ?>"><?= $x ?></a>
+                        <?php if($total_halaman > 1): ?>
+                        <nav class="mt-4 d-flex justify-content-between align-items-center">
+                            <span class="text-muted" style="font-size:12px;">Menampilkan halaman <?= $halaman ?> dari <?= $total_halaman ?></span>
+                            <ul class="pagination pagination-sm mb-0">
+                                <?php 
+                                    $keyword_param = isset($_GET['keyword']) ? '&keyword='.urlencode($_GET['keyword']) : '';
+                                ?>
+                                <li class="page-item <?= ($halaman <= 1) ? 'disabled' : '' ?>">
+                                    <a class="page-link shadow-sm border-0 bg-white" href="?act=MasterPSM<?= $keyword_param ?>&halaman=<?= $halaman - 1 ?>" style="border-radius:20px 0 0 20px;"><i class="bi bi-chevron-left"></i></a>
                                 </li>
-                            <?php endfor; ?>
-                            <li class="page-item <?= ($halaman >= $total_halaman) ? 'disabled' : '' ?>">
-                                <a class="page-link" href="?act=MasterPSM<?= $keyword_param ?>&halaman=<?= $halaman + 1 ?>">Selanjutnya</a>
-                            </li>
-                        </ul>
-                    </nav>
-                    <?php endif; ?>
+                                <?php for($x=1; $x<=$total_halaman; $x++): ?>
+                                    <li class="page-item <?= ($halaman == $x) ? 'active' : '' ?>">
+                                        <a class="page-link shadow-sm border-0 <?= ($halaman == $x) ? 'bg-primary text-white' : 'bg-white' ?>" href="?act=MasterPSM<?= $keyword_param ?>&halaman=<?= $x ?>" style="<?= ($halaman == $x) ? 'background-color:#0f766e !important;' : '' ?>"><?= $x ?></a>
+                                    </li>
+                                <?php endfor; ?>
+                                <li class="page-item <?= ($halaman >= $total_halaman) ? 'disabled' : '' ?>">
+                                    <a class="page-link shadow-sm border-0 bg-white" href="?act=MasterPSM<?= $keyword_param ?>&halaman=<?= $halaman + 1 ?>" style="border-radius:0 20px 20px 0;"><i class="bi bi-chevron-right"></i></a>
+                                </li>
+                            </ul>
+                        </nav>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
         </div>
