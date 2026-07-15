@@ -12,7 +12,9 @@
         fee_ralan DOUBLE
     )");
     global $konektor;
-    @mysqli_query($konektor, "ALTER TABLE setting_fee_psm ADD COLUMN fee_ralan_op DOUBLE AFTER fee_ralan");
+    try {
+        @mysqli_query($konektor, "ALTER TABLE setting_fee_psm ADD COLUMN fee_ralan_op DOUBLE AFTER fee_ralan");
+    } catch (Exception $e) {}
 
     // Insert default jika kosong
     $cek = bukaquery2("SELECT * FROM setting_fee_psm WHERE id=1");

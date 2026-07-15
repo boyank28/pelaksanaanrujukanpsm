@@ -40,7 +40,9 @@
 
     // Ambil Master Fee
     bukaquery2("CREATE TABLE IF NOT EXISTS setting_fee_psm (id INT PRIMARY KEY DEFAULT 1, fee_ranap_op DOUBLE, fee_ranap DOUBLE, fee_ralan DOUBLE)");
-    @mysqli_query($konektor, "ALTER TABLE setting_fee_psm ADD COLUMN fee_ralan_op DOUBLE AFTER fee_ralan");
+    try {
+        @mysqli_query($konektor, "ALTER TABLE setting_fee_psm ADD COLUMN fee_ralan_op DOUBLE AFTER fee_ralan");
+    } catch (Exception $e) {}
     $master_fee = mysqli_fetch_array(bukaquery2("SELECT * FROM setting_fee_psm WHERE id=1"));
     if(!$master_fee) $master_fee = ['fee_ranap_op'=>75000, 'fee_ranap'=>50000, 'fee_ralan'=>25000];
     $f_ranap_op = (double)$master_fee['fee_ranap_op'];

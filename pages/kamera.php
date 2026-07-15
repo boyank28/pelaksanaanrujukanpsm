@@ -317,9 +317,8 @@
         <?php } ?>
         <h5 class="text-dark"><center><button class="btn btn-secondary" onclick="window.location.reload();">Refresh</button><br/><br/>PENGAMBILAN BUKTI PELAKSANAAN RUJUKAN PSM <br>NO. RM <?=e($no_rkm_medis);?></center></h5>
         <h7 class="text-dark"><center>Tanggal <?=e($tanggalrujukan);?></center></h7><br/>
-        <form id="formFoto" method="POST" action="pages/storeImage.php" onsubmit="return validasiIsi();" enctype=multipart/form-data>
+        <form id="formFoto" method="POST" action="pages/storeImage.php" onsubmit="if(document.getElementById('TxtIsi1').value==''){alert('Silahkan klik Ya, Gabungkan Foto & Tanda Tangan terlebih dahulu!');return false;}" enctype=multipart/form-data>
             <?= csrf_input() ?>
-            <input type="hidden" name="image" id="image-tag">
             <input type="hidden" name="norawat" value="<?=e($norawat);?>">
             <input type="hidden" name="tanggal" value="<?=e($tanggal);?>">
             <h7 class="text-dark">

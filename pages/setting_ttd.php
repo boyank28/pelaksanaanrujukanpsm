@@ -19,8 +19,10 @@
 
     // Pastikan kolom dibuatkan ada (untuk update dari versi sebelumnya)
     global $konektor;
-    @mysqli_query($konektor, "ALTER TABLE setting_ttd_amprahan ADD COLUMN dibuatkan_nama VARCHAR(100) AFTER menyetujui_jabatan");
-    @mysqli_query($konektor, "ALTER TABLE setting_ttd_amprahan ADD COLUMN dibuatkan_jabatan VARCHAR(100) AFTER dibuatkan_nama");
+    try {
+        @mysqli_query($konektor, "ALTER TABLE setting_ttd_amprahan ADD COLUMN dibuatkan_nama VARCHAR(100) AFTER menyetujui_jabatan");
+        @mysqli_query($konektor, "ALTER TABLE setting_ttd_amprahan ADD COLUMN dibuatkan_jabatan VARCHAR(100) AFTER dibuatkan_nama");
+    } catch (Exception $e) {}
 
     // Insert default jika kosong
     $cek = bukaquery2("SELECT * FROM setting_ttd_amprahan WHERE id=1");
