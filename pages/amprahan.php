@@ -119,6 +119,11 @@
             form, .btn, .navbar, footer { display: none !important; }
             .print-only { display: block !important; }
             .table-bordered th, .table-bordered td { border: 1px solid #000 !important; }
+            table { page-break-inside: auto; }
+            tr { page-break-inside: avoid; page-break-after: auto; }
+            thead { display: table-header-group; }
+            tfoot { display: table-footer-group; }
+            .signature-block { page-break-inside: avoid; }
         }
     </style>
 </head>
@@ -220,7 +225,7 @@
                 </table>
             </div>
 
-            <div class="row mt-5 text-center" style="font-size: 13px; color:#000;">
+            <div class="row mt-5 text-center signature-block" style="font-size: 13px; color:#000;">
                 <div class="col-3">
                     <p class="mb-2">Dibuatkan Oleh :</p>
                     <div style="min-height: 80px;" class="d-flex flex-column justify-content-center align-items-center">

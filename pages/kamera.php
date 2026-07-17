@@ -5,7 +5,14 @@
     }
     
     $namars        = getOne("select setting.nama_instansi from {$db_name_sik}.setting");
-    $tanggal       = date('Y-m-d H:i:s');
+    // Ambil jam server dari database
+    $_sql_time = bukaquery2("SELECT NOW() as waktu");
+    if($_data_time = mysqli_fetch_array($_sql_time)) {
+        $tanggal = $_data_time['waktu'];
+    } else {
+        $tanggal = date('Y-m-d H:i:s');
+    }
+    
     $norawat       = "";
     
     if (isset($_REQUEST['no_rkm_medis']) && !empty($_REQUEST['no_rkm_medis'])) {

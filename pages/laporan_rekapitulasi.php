@@ -7,6 +7,9 @@
 
     $bulan = isset($_GET['bulan']) ? (int)$_GET['bulan'] : (int)date('m');
     $tahun = isset($_GET['tahun']) ? (int)$_GET['tahun'] : (int)date('Y');
+    $page  = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+    $limit = 15;
+    $offset = ($page - 1) * $limit;
 
     // Query untuk mengambil data total pasien per PSM pada bulan dan tahun terpilih
     $sql = "SELECT psm.nama_psm, COUNT(p.no_rawat) as total_pasien 
@@ -75,9 +78,22 @@
     WHERE MONTH(p.tanggal) = ? AND YEAR(p.tanggal) = ?
     GROUP BY p.no_rawat
     ORDER BY r.tgl_registrasi ASC";
+    
+    // Hitung total data untuk pagination
+    $sql_count = "SELECT COUNT(DISTINCT p.no_rawat) as total 
+                  FROM pelaksanaan_rujukan_psm p 
+                  WHERE MONTH(p.tanggal) = ? AND YEAR(p.tanggal) = ?";
+    $r_count = bukaquery_prepared($sql_count, "ii", $bulan, $tahun);
+    $d_count = mysqli_fetch_array($r_count);
+    $total_data = $d_count['total'];
+    $total_pages = ceil($total_data / $limit);
+
+    // Terapkan limit dan offset
+    $sql_detail .= " LIMIT $limit OFFSET $offset";
+    
     $hasil_detail = bukaquery_prepared($sql_detail, "ii", $bulan, $tahun);
     $detail_rows = "";
-    $no_detail = 1;
+    $no_detail = $offset + 1;
     $total_fee = 0;
     if ($hasil_detail && mysqli_num_rows($hasil_detail) > 0) {
         while ($r_det = mysqli_fetch_array($hasil_detail)) {
@@ -98,7 +114,7 @@
                 <td class='text-end'>".number_format($fee, 0, ',', '.')."</td>
             </tr>";
         }
-        $detail_rows .= "<tr class='fw-bold bg-subtotal'><td colspan='11' class='text-end'>TOTAL FEE:</td><td class='text-end'>".number_format($total_fee, 0, ',', '.')."</td></tr>";
+        $detail_rows .= "<tr class='fw-bold bg-subtotal'><td colspan='11' class='text-end'>TOTAL FEE (Hal. ini):</td><td class='text-end'>".number_format($total_fee, 0, ',', '.')."</td></tr>";
     } else {
         $detail_rows = "<tr><td colspan='12' class='text-center text-muted'>Tidak ada data pasien pada bulan ini</td></tr>";
     }
@@ -241,6 +257,32 @@
                                 </tbody>
                             </table>
                         </div>
+                        
+                        <!-- Pagination -->
+                        <?php if($total_pages > 1): ?>
+                        <nav aria-label="Page navigation" class="mt-4">
+                            <ul class="pagination justify-content-center">
+                                <li class="page-item <?= ($page <= 1) ? 'disabled' : '' ?>">
+                                    <a class="page-link" href="?act=Rekapitulasi&bulan=<?=$bulan?>&tahun=<?=$tahun?>&page=<?=$page-1?>">Previous</a>
+                                </li>
+                                <?php 
+                                    $start_page = max(1, $page - 2);
+                                    $end_page = min($total_pages, $page + 2);
+                                    for($i=$start_page; $i<=$end_page; $i++): 
+                                ?>
+                                <li class="page-item <?= ($page == $i) ? 'active' : '' ?>">
+                                    <a class="page-link" href="?act=Rekapitulasi&bulan=<?=$bulan?>&tahun=<?=$tahun?>&page=<?=$i?>"><?=$i?></a>
+                                </li>
+                                <?php endfor; ?>
+                                <li class="page-item <?= ($page >= $total_pages) ? 'disabled' : '' ?>">
+                                    <a class="page-link" href="?act=Rekapitulasi&bulan=<?=$bulan?>&tahun=<?=$tahun?>&page=<?=$page+1?>">Next</a>
+                                </li>
+                            </ul>
+                        </nav>
+                        <div class="text-center mt-2 text-muted" style="font-size:12px;">Menampilkan halaman <?=$page?> dari <?=$total_pages?> (Total <?=$total_data?> Data)</div>
+                        <div class="alert alert-info mt-3 mb-0" style="font-size: 13px;"><i class="bi bi-info-circle-fill me-2"></i><strong>Info:</strong> Tombol Cetak dan Excel hanya akan mencetak data yang tampil pada halaman ini.</div>
+                        <?php endif; ?>
+                        
                     </div>
                 </div>
             </div>

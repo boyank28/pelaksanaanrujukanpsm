@@ -10,12 +10,18 @@
     $norawat = substr(preg_replace('/[^a-zA-Z0-9\/\-\s]/', '', $_POST["norawat"]), 0, 30);
     $tanggal = substr(preg_replace('/[^0-9\-\:\s]/', '', $_POST["tanggal"]), 0, 20);
     $id_psm  = validTeks4($_POST["id_psm"],11);
-    if(file_exists(host()."/webapps/pelaksanaanrujukanpsm/pages/upload/".str_replace("/","",$norawat).str_replace(":","",str_replace("-","",str_replace(" ","",$tanggal))).".jpeg")){
-        @unlink(host()."/webapps/pelaksanaanrujukanpsm/pages/upload/".str_replace("/","",$norawat).str_replace(":","",str_replace("-","",str_replace(" ","",$tanggal))).".jpeg");
+    $fileName       = str_replace("/","",$norawat).str_replace(":","",str_replace("-","",str_replace(" ","",$tanggal))).".jpeg";
+    $folderPath     = __DIR__ . "/upload/";
+    if (!is_dir($folderPath)) {
+        @mkdir($folderPath, 0777, true);
+    }
+    $file           = $folderPath.$fileName;
+
+    if(file_exists($file)){
+        @unlink($file);
     }
 
     $img            = $_POST["image"];
-    $folderPath     = "upload/";
     $image_parts    = explode(";base64,", $img);
     if(count($image_parts) != 2 || (strpos($image_parts[0], 'image/jpeg') === false && strpos($image_parts[0], 'image/png') === false)) {
         die("Invalid image format.");
@@ -29,9 +35,10 @@
         die("Invalid file type detected.");
     }
 
-    $fileName       = str_replace("/","",$norawat).str_replace(":","",str_replace("-","",str_replace(" ","",$tanggal))).".jpeg";
-    $file           = $folderPath.$fileName;
-    file_put_contents($file, $image_base64);
+    if (file_put_contents($file, $image_base64) === false) {
+        echo renderPage('error', 'Gagal', 'Gagal menyimpan file gambar. Periksa hak akses direktori upload server.', $urlKembali);
+        exit;
+    }
 
     $urlKembali = isset($_SESSION['ses_admin_pelaksanaanrujukanpsm']) ? '../index.php?act=Dashboard' : '../index.php?act=Home';
     
