@@ -9,6 +9,13 @@
     $is_admin_dash = (isset($_SESSION['role_psm']) && $_SESSION['role_psm'] == 'Admin');
     $can_manage_rujukan = !empty($perms_dash['can_manage_rujukan']) || (empty($perms_dash) && $is_admin_dash);
 
+    // Pastikan kolom override ada
+    global $konektor;
+    bukakoneksi();
+    try {
+        @mysqli_query($konektor, "ALTER TABLE pelaksanaan_rujukan_psm ADD COLUMN override_status VARCHAR(20) DEFAULT NULL AFTER keterangan_diberikan_pada");
+    } catch (Exception $e) {}
+
     // Fetch dashboard stats
     $total_rujukan = getOne("select count(no_rawat) from pelaksanaan_rujukan_psm");
     $total_hari_ini = getOne("select count(no_rawat) from pelaksanaan_rujukan_psm where date(tanggal) = curdate()");
@@ -38,7 +45,9 @@
     $total_pages = ceil($total_data / $limit);
 
     $_sql = "SELECT p.tanggal, p.no_rawat, r.no_rkm_medis, ps.nm_pasien, p.id_psm, mpsm.nama_psm as nama_psm_pengantar, p.keterangan_diberikan_pada, b.bukti,
-             IFNULL((SELECT CONCAT(IF(r.status_lanjut='Ralan', CONCAT(pl.nm_poli, ' - '), IF(bsl.nm_bangsal IS NOT NULL, CONCAT(bsl.nm_bangsal, ' - '), '')), 'OK: ', po.nm_perawatan) FROM {$db_name_sik}.operasi op INNER JOIN {$db_name_sik}.paket_operasi po ON op.kode_paket=po.kode_paket WHERE op.no_rawat=p.no_rawat LIMIT 1), IFNULL(bsl.nm_bangsal, pl.nm_poli)) as nm_bangsal 
+             IFNULL((SELECT CONCAT(IF(r.status_lanjut='Ralan', CONCAT(pl.nm_poli, ' - '), IF(bsl.nm_bangsal IS NOT NULL, CONCAT(bsl.nm_bangsal, ' - '), '')), 'OK: ', po.nm_perawatan) FROM {$db_name_sik}.operasi op INNER JOIN {$db_name_sik}.paket_operasi po ON op.kode_paket=po.kode_paket WHERE op.no_rawat=p.no_rawat LIMIT 1), IFNULL(bsl.nm_bangsal, pl.nm_poli)) as nm_bangsal,
+             p.override_status,
+             r.status_lanjut
              FROM pelaksanaan_rujukan_psm p 
              INNER JOIN master_psm mpsm ON p.id_psm = mpsm.id_psm
              INNER JOIN {$db_name_sik}.reg_periksa r ON p.no_rawat = r.no_rawat 
@@ -431,7 +440,7 @@
                                 
                                 if($can_manage_rujukan) {
                                     echo "<td style='text-align:center; white-space:nowrap;'>";
-                                    $editOnclick = "showEditModal(" . json_encode($row['no_rawat']) . "," . json_encode($row['tanggal']) . "," . json_encode($row['id_psm']) . ")";
+                                    $editOnclick = "showEditModal(" . json_encode($row['no_rawat']) . "," . json_encode($row['tanggal']) . "," . json_encode($row['id_psm']) . "," . json_encode($row['override_status']) . ")";
                                     $confirmOnsubmit = "return confirm(" . json_encode('Yakin ingin menghapus data rujukan pasien ' . $row['nm_pasien'] . ' ini? Fotonya juga akan terhapus.') . ")";
                                     echo "<button onclick=\"".e($editOnclick)."\" class='btn btn-sm btn-warning me-1' style='color:white; border-radius:6px;' title='Edit PSM'><i class='bi bi-pencil-square'></i></button>";
                                     echo "<form method='POST' action='?act=HapusRujukan' style='display:inline;' onsubmit=\"".e($confirmOnsubmit)."\">";
@@ -506,6 +515,15 @@
                             </select>
                         </div>
                         <div class="mb-3">
+                            <label class="form-label fw-bold" style="color: #475569;">Ubah Jenis Perawatan (Manual Fee)</label>
+                            <select name="override_status" id="edit_override_status" class="form-select">
+                                <option value="">Otomatis dari SIMRS</option>
+                                <option value="Ranap">Rawat Inap (Override)</option>
+                                <option value="Ralan">Rawat Jalan (Override)</option>
+                            </select>
+                            <small class="text-muted" style="font-size: 11px;">Gunakan fitur ini JIKA pasien tertahan di IGD/transit tapi ingin dihitung tarif rawat inap.</small>
+                        </div>
+                        <div class="mb-3">
                             <div class="card bg-light border-0 p-3 mt-3 text-center">
                                 <p class="mb-2 text-muted" style="font-size: 13px;">Ingin memperbarui foto bukti dan tanda tangan?</p>
                                 <a id="btnGantiFoto" href="#" class="btn btn-outline-secondary fw-bold" style="border-radius: 8px;">
@@ -543,10 +561,11 @@
         });
 
         // Function to show Edit Modal
-        function showEditModal(noRawat, tanggal, currentIdPsm) {
+        function showEditModal(noRawat, tanggal, currentIdPsm, overrideStatus) {
             $('#edit_no_rawat').val(noRawat);
             $('#edit_tanggal').val(tanggal);
             $('#edit_id_psm').val(currentIdPsm);
+            $('#edit_override_status').val(overrideStatus || '');
             
             // Set link for camera retake
             var cameraLink = '?act=Kamera&norawat=' + encodeURIComponent(noRawat) + '&tanggal=' + encodeURIComponent(tanggal);

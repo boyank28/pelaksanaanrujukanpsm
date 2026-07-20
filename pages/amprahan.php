@@ -11,11 +11,13 @@
     // Pastikan tabel TTD ada dan ambil datanya
     bukaquery2("CREATE TABLE IF NOT EXISTS setting_ttd_amprahan (id INT PRIMARY KEY DEFAULT 1, mengetahui_nama VARCHAR(100), mengetahui_jabatan VARCHAR(100), dicek_nama VARCHAR(100), dicek_jabatan VARCHAR(100), menyetujui_nama VARCHAR(100), menyetujui_jabatan VARCHAR(100), dibuatkan_nama VARCHAR(100), dibuatkan_jabatan VARCHAR(100))");
     
-    // Pastikan kolom dibuatkan ada
+    // Pastikan kolom dibuatkan dan override ada
     global $konektor;
     try {
+        bukakoneksi();
         @mysqli_query($konektor, "ALTER TABLE setting_ttd_amprahan ADD COLUMN dibuatkan_nama VARCHAR(100) AFTER menyetujui_jabatan");
         @mysqli_query($konektor, "ALTER TABLE setting_ttd_amprahan ADD COLUMN dibuatkan_jabatan VARCHAR(100) AFTER dibuatkan_nama");
+        @mysqli_query($konektor, "ALTER TABLE pelaksanaan_rujukan_psm ADD COLUMN override_status VARCHAR(20) DEFAULT NULL AFTER keterangan_diberikan_pada");
     } catch (Exception $e) {}
 
     $ttd = mysqli_fetch_array(bukaquery2("SELECT * FROM setting_ttd_amprahan WHERE id=1"));
@@ -48,10 +50,10 @@
 
     // Query Amprahan Biaya Fee
     $sql_amprahan = "SELECT 
-        IFNULL(kec.nm_kec, 'LAINNYA') as kecamatan,
+        IF(mpsm.alamat='' OR mpsm.alamat IS NULL, 'LAINNYA', mpsm.alamat) as kecamatan,
         mpsm.id_psm,
         mpsm.nama_psm,
-        SUM(IF(r.status_lanjut='Ranap', IF(op.no_rawat IS NOT NULL, {$f_ranap_op}, {$f_ranap}), IF(op.no_rawat IS NOT NULL, {$f_ralan_op}, {$f_ralan}))) as total_fee,
+        SUM(IF(IFNULL(p.override_status, r.status_lanjut)='Ranap', IF(op.no_rawat IS NOT NULL, {$f_ranap_op}, {$f_ranap}), IF(op.no_rawat IS NOT NULL, {$f_ralan_op}, {$f_ralan}))) as total_fee,
         ak.keterangan
     FROM pelaksanaan_rujukan_psm p
     INNER JOIN master_psm mpsm ON p.id_psm = mpsm.id_psm
@@ -61,8 +63,8 @@
     LEFT JOIN (SELECT no_rawat FROM {$db_name_sik}.operasi GROUP BY no_rawat) op ON r.no_rawat = op.no_rawat
     LEFT JOIN amprahan_keterangan ak ON mpsm.id_psm = ak.id_psm AND ak.bulan = ? AND ak.tahun = ?
     WHERE MONTH(p.tanggal) = ? AND YEAR(p.tanggal) = ?
-    GROUP BY kec.nm_kec, mpsm.id_psm
-    ORDER BY kec.nm_kec ASC, mpsm.nama_psm ASC";
+    GROUP BY IF(mpsm.alamat='' OR mpsm.alamat IS NULL, 'LAINNYA', mpsm.alamat), mpsm.id_psm
+    ORDER BY IF(mpsm.alamat='' OR mpsm.alamat IS NULL, 'LAINNYA', mpsm.alamat) ASC, mpsm.nama_psm ASC";
     
     $hasil_amprahan = bukaquery_prepared($sql_amprahan, "iiii", $bulan, $tahun, $bulan, $tahun);
     $amprahan_data = [];
