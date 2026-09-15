@@ -8,12 +8,22 @@ if (!isset($_SESSION['ses_admin_pelaksanaanrujukanpsm']) || (empty($_SESSION['pe
 }
 global $db_name_sik, $konektor;
 
-$bulan = isset($_GET['bulan']) ? (int)$_GET['bulan'] : (int)date('m');
-$tahun = isset($_GET['tahun']) ? (int)$_GET['tahun'] : (int)date('Y');
+if (isset($_GET['tgl_awal']) && isset($_GET['tgl_akhir'])) {
+    $tgl_awal  = $_GET['tgl_awal'];
+    $tgl_akhir = $_GET['tgl_akhir'];
+} elseif (isset($_GET['bulan']) && isset($_GET['tahun'])) {
+    $b         = sprintf("%02d", (int)$_GET['bulan']);
+    $t         = (int)$_GET['tahun'];
+    $tgl_awal  = "$t-$b-01";
+    $tgl_akhir = date('Y-m-t', strtotime($tgl_awal));
+} else {
+    $tgl_awal  = date('Y-m-01');
+    $tgl_akhir = date('Y-m-d');
+}
 $keyword = isset($_GET['keyword']) ? $_GET['keyword'] : '';
 
 header("Content-type: application/vnd-ms-excel");
-header("Content-Disposition: attachment; filename=Rekap_Pasien_PSM_{$bulan}_{$tahun}.xls");
+header("Content-Disposition: attachment; filename=Rekap_Pasien_PSM_{$tgl_awal}_s.d_{$tgl_akhir}.xls");
 header("Pragma: no-cache");
 header("Expires: 0");
 
@@ -26,13 +36,13 @@ $f_ralan = (double)$master_fee['fee_ralan'];
 $f_ralan_op = isset($master_fee['fee_ralan_op']) ? (double)$master_fee['fee_ralan_op'] : 125000;
 
 $search_query = "";
-$params = [$bulan, $tahun];
-$types = "ii";
+$params = [$tgl_awal, $tgl_akhir];
+$types = "ss";
 if ($keyword != '') {
-    $search_query = " AND (ps.nm_pasien LIKE ? OR r.no_rkm_medis LIKE ? OR mpsm.nama_psm LIKE ?)";
+    $search_query = " AND mpsm.nama_psm LIKE ?";
     $like = "%$keyword%";
-    $params[] = $like; $params[] = $like; $params[] = $like;
-    $types .= "sss";
+    $params[] = $like;
+    $types .= "s";
 }
 
 $sql_detail = "SELECT 
@@ -44,7 +54,7 @@ $sql_detail = "SELECT
     pj.png_jawab as jaminan,
     mpsm.nama_psm,
     concat(ps.alamat, ', ', kel.nm_kel, ', ', kec.nm_kec) as alamat,
-    ps.no_tlp as no_hp,
+    mpsm.no_telp as no_hp,
     IFNULL((SELECT totalpiutang FROM {$db_name_sik}.piutang_pasien WHERE no_rawat=r.no_rawat LIMIT 1), 0) as billing,
     IF(IFNULL(p.override_status, r.status_lanjut)='Ranap', IF(op.no_rawat IS NOT NULL, {$f_ranap_op}, {$f_ranap}), IF(op.no_rawat IS NOT NULL, {$f_ralan_op}, {$f_ralan})) as fee
 FROM pelaksanaan_rujukan_psm p
@@ -56,18 +66,15 @@ LEFT JOIN {$db_name_sik}.kelurahan kel ON ps.kd_kel = kel.kd_kel
 LEFT JOIN {$db_name_sik}.kecamatan kec ON ps.kd_kec = kec.kd_kec
 LEFT JOIN {$db_name_sik}.kamar_inap ki ON r.no_rawat = ki.no_rawat AND ki.stts_pulang <> 'Pindah Kamar'
 LEFT JOIN (SELECT no_rawat FROM {$db_name_sik}.operasi GROUP BY no_rawat) op ON r.no_rawat = op.no_rawat
-WHERE MONTH(p.tanggal) = ? AND YEAR(p.tanggal) = ? $search_query
+WHERE DATE(p.tanggal) BETWEEN ? AND ? $search_query
 GROUP BY p.no_rawat
-ORDER BY r.tgl_registrasi ASC";
+ORDER BY r.tgl_registrasi ASC, r.no_rawat ASC";
 
 $hasil_detail = bukaquery_prepared($sql_detail, $types, ...$params);
-
-$bulans = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-$nama_bulan = $bulans[$bulan-1];
 ?>
 <center>
     <h2>Data Rekap Pasien Rujukan PSM</h2>
-    <h3>Bulan <?= $nama_bulan ?> Tahun <?= $tahun ?></h3>
+    <h3>Periode <?= date('d/m/Y', strtotime($tgl_awal)) ?> s.d. <?= date('d/m/Y', strtotime($tgl_akhir)) ?></h3>
 </center>
 <table border="1" cellpadding="5" cellspacing="0">
     <thead style="background-color: #e2e8f0;">
@@ -98,18 +105,18 @@ $nama_bulan = $bulans[$bulan-1];
                     <td>".$no_detail++."</td>
                     <td>".date('d/m/Y', strtotime($r_det['tgl_masuk']))."</td>
                     <td>".($r_det['tgl_pulang'] !== '-' && $r_det['tgl_pulang'] !== '0000-00-00' ? date('d/m/Y', strtotime($r_det['tgl_pulang'])) : '-')."</td>
-                    <td>".e($r_det['no_rm'])."</td>
+                    <td style='mso-number-format:\"\\@\";'>".e($r_det['no_rm'])."</td>
                     <td>".e($r_det['nm_pasien'])."</td>
                     <td>".e($r_det['jenis_perawatan'])."</td>
                     <td>".e($r_det['jaminan'])."</td>
                     <td>".e($r_det['nama_psm'])."</td>
                     <td>".e($r_det['alamat'])."</td>
-                    <td>".e($r_det['no_hp'])."</td>
-                    <td>".$r_det['billing']."</td>
-                    <td>".$fee."</td>
+                    <td style='mso-number-format:\"\\@\";'>".e($r_det['no_hp'])."</td>
+                    <td style='text-align:right;'>".number_format((float)$r_det['billing'], 0, ',', '.')."</td>
+                    <td style='text-align:right;'>".number_format($fee, 0, ',', '.')."</td>
                 </tr>";
             }
-            echo "<tr style='font-weight:bold;'><td colspan='11' style='text-align:right;'>TOTAL FEE:</td><td>".$total_fee."</td></tr>";
+            echo "<tr style='font-weight:bold;'><td colspan='11' style='text-align:right;'>TOTAL FEE:</td><td style='text-align:right;'>".number_format($total_fee, 0, ',', '.')."</td></tr>";
         } else {
             echo "<tr><td colspan='12' style='text-align:center;'>Tidak ada data pasien pada bulan ini</td></tr>";
         }

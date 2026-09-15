@@ -5,8 +5,20 @@
     }
     global $db_name_sik, $konektor;
 
-    $bulan = isset($_GET['bulan']) ? (int)$_GET['bulan'] : (int)date('m');
-    $tahun = isset($_GET['tahun']) ? (int)$_GET['tahun'] : (int)date('Y');
+    if (isset($_GET['tgl_awal']) && isset($_GET['tgl_akhir'])) {
+        $tgl_awal  = $_GET['tgl_awal'];
+        $tgl_akhir = $_GET['tgl_akhir'];
+    } elseif (isset($_GET['bulan']) && isset($_GET['tahun'])) {
+        $b         = sprintf("%02d", (int)$_GET['bulan']);
+        $t         = (int)$_GET['tahun'];
+        $tgl_awal  = "$t-$b-01";
+        $tgl_akhir = date('Y-m-t', strtotime($tgl_awal));
+    } else {
+        $tgl_awal  = date('Y-m-01');
+        $tgl_akhir = date('Y-m-d');
+    }
+    $bulan = (int)date('m', strtotime($tgl_awal));
+    $tahun = (int)date('Y', strtotime($tgl_awal));
 
     // Pastikan tabel TTD ada dan ambil datanya
     bukaquery2("CREATE TABLE IF NOT EXISTS setting_ttd_amprahan (id INT PRIMARY KEY DEFAULT 1, mengetahui_nama VARCHAR(100), mengetahui_jabatan VARCHAR(100), dicek_nama VARCHAR(100), dicek_jabatan VARCHAR(100), menyetujui_nama VARCHAR(100), menyetujui_jabatan VARCHAR(100), dibuatkan_nama VARCHAR(100), dibuatkan_jabatan VARCHAR(100))");
@@ -53,20 +65,26 @@
         IF(mpsm.alamat='' OR mpsm.alamat IS NULL, 'LAINNYA', mpsm.alamat) as kecamatan,
         mpsm.id_psm,
         mpsm.nama_psm,
-        SUM(IF(IFNULL(p.override_status, r.status_lanjut)='Ranap', IF(op.no_rawat IS NOT NULL, {$f_ranap_op}, {$f_ranap}), IF(op.no_rawat IS NOT NULL, {$f_ralan_op}, {$f_ralan}))) as total_fee,
+        SUM(p_sub.fee) as total_fee,
         ak.keterangan
-    FROM pelaksanaan_rujukan_psm p
-    INNER JOIN master_psm mpsm ON p.id_psm = mpsm.id_psm
-    INNER JOIN {$db_name_sik}.reg_periksa r ON p.no_rawat = r.no_rawat
-    INNER JOIN {$db_name_sik}.pasien ps ON r.no_rkm_medis = ps.no_rkm_medis
-    LEFT JOIN {$db_name_sik}.kecamatan kec ON ps.kd_kec = kec.kd_kec
-    LEFT JOIN (SELECT no_rawat FROM {$db_name_sik}.operasi GROUP BY no_rawat) op ON r.no_rawat = op.no_rawat
+    FROM master_psm mpsm
+    INNER JOIN (
+        SELECT 
+            p.id_psm,
+            p.no_rawat,
+            IF(IFNULL(p.override_status, r.status_lanjut)='Ranap', IF(op.no_rawat IS NOT NULL, {$f_ranap_op}, {$f_ranap}), IF(op.no_rawat IS NOT NULL, {$f_ralan_op}, {$f_ralan})) as fee
+        FROM pelaksanaan_rujukan_psm p
+        INNER JOIN {$db_name_sik}.reg_periksa r ON p.no_rawat = r.no_rawat
+        INNER JOIN {$db_name_sik}.pasien ps ON r.no_rkm_medis = ps.no_rkm_medis
+        LEFT JOIN (SELECT no_rawat FROM {$db_name_sik}.operasi GROUP BY no_rawat) op ON r.no_rawat = op.no_rawat
+        WHERE DATE(p.tanggal) BETWEEN ? AND ?
+        GROUP BY p.id_psm, p.no_rawat
+    ) p_sub ON mpsm.id_psm = p_sub.id_psm
     LEFT JOIN amprahan_keterangan ak ON mpsm.id_psm = ak.id_psm AND ak.bulan = ? AND ak.tahun = ?
-    WHERE MONTH(p.tanggal) = ? AND YEAR(p.tanggal) = ?
     GROUP BY IF(mpsm.alamat='' OR mpsm.alamat IS NULL, 'LAINNYA', mpsm.alamat), mpsm.id_psm
     ORDER BY IF(mpsm.alamat='' OR mpsm.alamat IS NULL, 'LAINNYA', mpsm.alamat) ASC, mpsm.nama_psm ASC";
     
-    $hasil_amprahan = bukaquery_prepared($sql_amprahan, "iiii", $bulan, $tahun, $bulan, $tahun);
+    $hasil_amprahan = bukaquery_prepared($sql_amprahan, "ssii", $tgl_awal, $tgl_akhir, $bulan, $tahun);
     $amprahan_data = [];
     $total_keseluruhan = 0;
     if ($hasil_amprahan && mysqli_num_rows($hasil_amprahan) > 0) {
@@ -116,16 +134,19 @@
         .btn-filter { background: #0f766e; color: white; border: none; font-weight: 600; border-radius: 8px; }
         .btn-filter:hover { background: #0d9488; color: white; }
         @media print {
-            body { background: white !important; }
-            .card-custom { box-shadow: none !important; padding: 0 !important; }
-            form, .btn, .navbar, footer { display: none !important; }
+            @page { size: A4 portrait; margin: 8mm 10mm; }
+            body { background: white !important; padding: 0 !important; margin: 0 !important; }
+            .sidebar-custom, .topbar-custom, form, .btn, .navbar, footer, .page-title, .d-print-none { display: none !important; }
+            .container-fluid { padding: 0 !important; max-width: 100% !important; margin: 0 !important; }
+            .card-custom { box-shadow: none !important; padding: 0 !important; margin: 0 !important; border: none !important; }
             .print-only { display: block !important; }
-            .table-bordered th, .table-bordered td { border: 1px solid #000 !important; }
-            table { page-break-inside: auto; }
-            tr { page-break-inside: avoid; page-break-after: auto; }
-            thead { display: table-header-group; }
-            tfoot { display: table-footer-group; }
-            .signature-block { page-break-inside: avoid; }
+            .table-custom { font-size: 11px !important; margin-bottom: 5px !important; }
+            .table-custom th, .table-custom td { padding: 3px 6px !important; border: 1px solid #000 !important; color: #000 !important; }
+            h5.d-print-block { font-size: 13px !important; margin-bottom: 10px !important; }
+            .signature-block { page-break-inside: avoid; margin-top: 15px !important; font-size: 10px !important; }
+            .signature-block div[id^="box-"], .signature-block div { min-height: 50px !important; }
+            .signature-block img { max-height: 45px !important; width: auto !important; }
+            .signature-block p { margin-bottom: 2px !important; }
         }
     </style>
 </head>
@@ -138,29 +159,12 @@
             <form method="GET" action="index.php" class="row g-3 align-items-end">
                 <input type="hidden" name="act" value="Amprahan">
                 <div class="col-md-4">
-                    <label class="form-label text-muted fw-bold mb-1" style="font-size: 13px;">Bulan</label>
-                    <select name="bulan" class="form-select" style="border-radius: 8px; border: 1.5px solid #cbd5e1;">
-                        <?php 
-                        $bulans = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-                        foreach($bulans as $index => $nama_bulan) {
-                            $val = str_pad($index + 1, 2, "0", STR_PAD_LEFT);
-                            $sel = ($val == $bulan) ? "selected" : "";
-                            echo "<option value='$val' $sel>$nama_bulan</option>";
-                        }
-                        ?>
-                    </select>
+                    <label class="form-label text-muted fw-bold mb-1" style="font-size: 13px;">Tanggal Awal</label>
+                    <input type="date" name="tgl_awal" class="form-control" style="border-radius: 8px; border: 1.5px solid #cbd5e1;" value="<?= htmlspecialchars($tgl_awal) ?>">
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label text-muted fw-bold mb-1" style="font-size: 13px;">Tahun</label>
-                    <select name="tahun" class="form-select" style="border-radius: 8px; border: 1.5px solid #cbd5e1;">
-                        <?php 
-                        $thn_skrg = date('Y');
-                        for($t = $thn_skrg; $t >= 2023; $t--) {
-                            $sel = ($t == $tahun) ? "selected" : "";
-                            echo "<option value='$t' $sel>$t</option>";
-                        }
-                        ?>
-                    </select>
+                    <label class="form-label text-muted fw-bold mb-1" style="font-size: 13px;">Tanggal Akhir</label>
+                    <input type="date" name="tgl_akhir" class="form-control" style="border-radius: 8px; border: 1.5px solid #cbd5e1;" value="<?= htmlspecialchars($tgl_akhir) ?>">
                 </div>
                 <div class="col-md-4">
                     <button type="submit" class="btn btn-filter w-100 py-2"><i class="bi bi-funnel-fill me-1"></i> Tampilkan</button>
@@ -172,12 +176,12 @@
             <div class="d-flex justify-content-between align-items-center mb-4 d-print-none">
                 <h5 class="fw-bold m-0" style="color: #334155;">AMPRAHAN BIAYA FEE PSM</h5>
                 <div>
-                    <button class="btn btn-outline-success btn-sm me-2" onclick="exportExcel('tableAmprahan', 'Amprahan_Fee_PSM_<?= $bulan ?>_<?= $tahun ?>')"><i class="bi bi-file-earmark-excel-fill me-1"></i> Export Excel</button>
+                    <button class="btn btn-outline-success btn-sm me-2" onclick="exportExcel('tableAmprahan', 'Amprahan_Fee_PSM_<?= $tgl_awal ?>_s.d_<?= $tgl_akhir ?>')"><i class="bi bi-file-earmark-excel-fill me-1"></i> Export Excel</button>
                     <button class="btn btn-outline-primary btn-sm" onclick="window.print()"><i class="bi bi-printer-fill me-1"></i> Cetak</button>
                 </div>
             </div>
             
-            <h5 class="fw-bold m-0 text-center mb-3 d-none d-print-block" style="color: #000;">AMPRAHAN BIAYA FEE PSM WILAYAH CIKAMPEK DAN SEKITARNYA BULAN <?= strtoupper($bulans[$bulan-1]) ?> TH <?= $tahun ?></h5>
+            <h5 class="fw-bold m-0 text-center mb-3 d-none d-print-block" style="color: #000;">AMPRAHAN BIAYA FEE PSM PERIODE <?= date('d/m/Y', strtotime($tgl_awal)) ?> S.D. <?= date('d/m/Y', strtotime($tgl_akhir)) ?></h5>
 
             <div class="table-responsive">
                 <table id="tableAmprahan" class="table table-bordered table-custom" style="font-size: 13px;">

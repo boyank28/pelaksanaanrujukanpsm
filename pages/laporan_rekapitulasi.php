@@ -5,8 +5,18 @@
     }
     global $db_name_sik, $konektor;
 
-    $bulan = isset($_GET['bulan']) ? (int)$_GET['bulan'] : (int)date('m');
-    $tahun = isset($_GET['tahun']) ? (int)$_GET['tahun'] : (int)date('Y');
+    if (isset($_GET['tgl_awal']) && isset($_GET['tgl_akhir'])) {
+        $tgl_awal  = $_GET['tgl_awal'];
+        $tgl_akhir = $_GET['tgl_akhir'];
+    } elseif (isset($_GET['bulan']) && isset($_GET['tahun'])) {
+        $b         = sprintf("%02d", (int)$_GET['bulan']);
+        $t         = (int)$_GET['tahun'];
+        $tgl_awal  = "$t-$b-01";
+        $tgl_akhir = date('Y-m-t', strtotime($tgl_awal));
+    } else {
+        $tgl_awal  = date('Y-m-01');
+        $tgl_akhir = date('Y-m-d');
+    }
     $keyword = isset($_GET['keyword']) ? $_GET['keyword'] : '';
     $page  = isset($_GET['page']) ? (int)$_GET['page'] : 1;
     $limit = 15;
@@ -17,15 +27,20 @@
         @mysqli_query($konektor, "ALTER TABLE pelaksanaan_rujukan_psm ADD COLUMN override_status VARCHAR(20) DEFAULT NULL AFTER keterangan_diberikan_pada");
     } catch (Exception $e) {}
 
-    // Query untuk mengambil data total pasien per PSM pada bulan dan tahun terpilih
-    $sql = "SELECT psm.nama_psm, COUNT(p.no_rawat) as total_pasien 
+    // Query untuk mengambil data total pasien per PSM pada periode terpilih
+    $sql = "SELECT psm.nama_psm, COUNT(DISTINCT p.no_rawat) as total_pasien 
             FROM master_psm psm 
-            LEFT JOIN pelaksanaan_rujukan_psm p ON psm.id_psm = p.id_psm 
-                AND MONTH(p.tanggal) = ? AND YEAR(p.tanggal) = ?
+            LEFT JOIN (
+                SELECT p.id_psm, p.no_rawat 
+                FROM pelaksanaan_rujukan_psm p
+                INNER JOIN {$db_name_sik}.reg_periksa r ON p.no_rawat = r.no_rawat
+                INNER JOIN {$db_name_sik}.pasien ps ON r.no_rkm_medis = ps.no_rkm_medis
+                WHERE DATE(p.tanggal) BETWEEN ? AND ?
+            ) p ON psm.id_psm = p.id_psm
             GROUP BY psm.id_psm 
             ORDER BY total_pasien DESC LIMIT 10";
             
-    $hasil = bukaquery_prepared($sql, "ii", $bulan, $tahun);
+    $hasil = bukaquery_prepared($sql, "ss", $tgl_awal, $tgl_akhir);
     
     $psm_names = [];
     $psm_totals = [];
@@ -61,13 +76,13 @@
 
     // Query untuk mengambil detail pasien
     $search_query = "";
-    $params = [$bulan, $tahun];
-    $types = "ii";
+    $params = [$tgl_awal, $tgl_akhir];
+    $types = "ss";
     if ($keyword != '') {
-        $search_query = " AND (ps.nm_pasien LIKE ? OR r.no_rkm_medis LIKE ? OR mpsm.nama_psm LIKE ?)";
+        $search_query = " AND mpsm.nama_psm LIKE ?";
         $like = "%$keyword%";
-        $params[] = $like; $params[] = $like; $params[] = $like;
-        $types .= "sss";
+        $params[] = $like;
+        $types .= "s";
     }
 
     $sql_detail = "SELECT 
@@ -79,7 +94,7 @@
         pj.png_jawab as jaminan,
         mpsm.nama_psm,
         concat(ps.alamat, ', ', kel.nm_kel, ', ', kec.nm_kec) as alamat,
-        ps.no_tlp as no_hp,
+        mpsm.no_telp as no_hp,
         IFNULL((SELECT totalpiutang FROM {$db_name_sik}.piutang_pasien WHERE no_rawat=r.no_rawat LIMIT 1), 0) as billing,
         IF(IFNULL(p.override_status, r.status_lanjut)='Ranap', IF(op.no_rawat IS NOT NULL, {$f_ranap_op}, {$f_ranap}), IF(op.no_rawat IS NOT NULL, {$f_ralan_op}, {$f_ralan})) as fee
     FROM pelaksanaan_rujukan_psm p
@@ -91,9 +106,9 @@
     LEFT JOIN {$db_name_sik}.kecamatan kec ON ps.kd_kec = kec.kd_kec
     LEFT JOIN {$db_name_sik}.kamar_inap ki ON r.no_rawat = ki.no_rawat AND ki.stts_pulang <> 'Pindah Kamar'
     LEFT JOIN (SELECT no_rawat FROM {$db_name_sik}.operasi GROUP BY no_rawat) op ON r.no_rawat = op.no_rawat
-    WHERE MONTH(p.tanggal) = ? AND YEAR(p.tanggal) = ? $search_query
+    WHERE DATE(p.tanggal) BETWEEN ? AND ? $search_query
     GROUP BY p.no_rawat
-    ORDER BY r.tgl_registrasi ASC";
+    ORDER BY r.tgl_registrasi ASC, r.no_rawat ASC";
     
     // Hitung total data untuk pagination
     $sql_count = "SELECT COUNT(DISTINCT p.no_rawat) as total 
@@ -101,7 +116,7 @@
                   INNER JOIN master_psm mpsm ON p.id_psm = mpsm.id_psm
                   INNER JOIN {$db_name_sik}.reg_periksa r ON p.no_rawat = r.no_rawat
                   INNER JOIN {$db_name_sik}.pasien ps ON r.no_rkm_medis = ps.no_rkm_medis
-                  WHERE MONTH(p.tanggal) = ? AND YEAR(p.tanggal) = ? $search_query";
+                  WHERE DATE(p.tanggal) BETWEEN ? AND ? $search_query";
     $r_count = bukaquery_prepared($sql_count, $types, ...$params);
     $d_count = mysqli_fetch_array($r_count);
     $total_data = $d_count['total'];
@@ -175,29 +190,12 @@
                 <form method="GET" action="index.php" class="row g-3 align-items-end">
                     <input type="hidden" name="act" value="Rekapitulasi">
                     <div class="col-md-4">
-                        <label class="form-label text-muted fw-bold mb-2" style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Bulan</label>
-                        <select name="bulan" class="form-select" style="border-radius: 8px;">
-                            <?php 
-                            $bulans = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-                            foreach($bulans as $index => $nama_bulan) {
-                                $val = str_pad($index + 1, 2, "0", STR_PAD_LEFT);
-                                $sel = ($val == $bulan) ? "selected" : "";
-                                echo "<option value='$val' $sel>$nama_bulan</option>";
-                            }
-                            ?>
-                        </select>
+                        <label class="form-label text-muted fw-bold mb-2" style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Tanggal Awal</label>
+                        <input type="date" name="tgl_awal" class="form-control" style="border-radius: 8px;" value="<?= htmlspecialchars($tgl_awal) ?>">
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label text-muted fw-bold mb-2" style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Tahun</label>
-                        <select name="tahun" class="form-select" style="border-radius: 8px;">
-                            <?php 
-                            $thn_skrg = date('Y');
-                            for($t = $thn_skrg; $t >= 2023; $t--) {
-                                $sel = ($t == $tahun) ? "selected" : "";
-                                echo "<option value='$t' $sel>$t</option>";
-                            }
-                            ?>
-                        </select>
+                        <label class="form-label text-muted fw-bold mb-2" style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Tanggal Akhir</label>
+                        <input type="date" name="tgl_akhir" class="form-control" style="border-radius: 8px;" value="<?= htmlspecialchars($tgl_akhir) ?>">
                     </div>
                     <input type="hidden" name="keyword" value="<?= htmlspecialchars($keyword) ?>">
                     <div class="col-md-4">
@@ -251,12 +249,12 @@
                         <div class="d-flex gap-2 align-items-center">
                             <form method="GET" action="index.php" class="d-flex gap-2 mb-0 me-2">
                                 <input type="hidden" name="act" value="Rekapitulasi">
-                                <input type="hidden" name="bulan" value="<?= $bulan ?>">
-                                <input type="hidden" name="tahun" value="<?= $tahun ?>">
+                                <input type="hidden" name="tgl_awal" value="<?= htmlspecialchars($tgl_awal) ?>">
+                                <input type="hidden" name="tgl_akhir" value="<?= htmlspecialchars($tgl_akhir) ?>">
                                 <input type="text" name="keyword" class="form-control form-control-sm" style="border-radius: 6px; width: 220px; border: 2px solid #ef4444;" placeholder="Pencarian..." value="<?= htmlspecialchars($keyword) ?>">
                             </form>
-                            <button class="btn btn-light text-success btn-sm px-3 rounded-pill border" onclick="window.open('pages/export_excel_rekap.php?bulan=<?= $bulan ?>&tahun=<?= $tahun ?>&keyword=<?= urlencode($keyword) ?>', '_blank')" style="font-weight: 600;"><i class="bi bi-file-earmark-excel-fill me-1"></i> Excel All</button>
-                            <button class="btn btn-light text-primary btn-sm px-3 rounded-pill border" onclick="cetakArea('areaRekap', 'DATA REKAP PASIEN RUJUKAN PSM')" style="font-weight: 600;"><i class="bi bi-printer-fill me-1"></i> Cetak</button>
+                            <button class="btn btn-light text-success btn-sm px-3 rounded-pill border" onclick="window.open('pages/export_excel_rekap.php?tgl_awal=<?= urlencode($tgl_awal) ?>&tgl_akhir=<?= urlencode($tgl_akhir) ?>&keyword=<?= urlencode($keyword) ?>', '_blank')" style="font-weight: 600;"><i class="bi bi-file-earmark-excel-fill me-1"></i> Excel All</button>
+                            <button class="btn btn-light text-primary btn-sm px-3 rounded-pill border" onclick="window.open('pages/cetak_rekap.php?tgl_awal=<?= urlencode($tgl_awal) ?>&tgl_akhir=<?= urlencode($tgl_akhir) ?>&keyword=<?= urlencode($keyword) ?>', '_blank')" style="font-weight: 600;"><i class="bi bi-printer-fill me-1"></i> Cetak</button>
                         </div>
                     </div>
                     <div class="card-body px-4 pb-4 pt-0">
@@ -289,7 +287,7 @@
                         <nav aria-label="Page navigation" class="mt-4">
                             <ul class="pagination justify-content-center">
                                 <li class="page-item <?= ($page <= 1) ? 'disabled' : '' ?>">
-                                    <a class="page-link" href="?act=Rekapitulasi&bulan=<?=$bulan?>&tahun=<?=$tahun?>&page=<?=$page-1?>">Previous</a>
+                                    <a class="page-link" href="?act=Rekapitulasi&tgl_awal=<?=urlencode($tgl_awal)?>&tgl_akhir=<?=urlencode($tgl_akhir)?>&keyword=<?=urlencode($keyword)?>&page=<?=$page-1?>">Previous</a>
                                 </li>
                                 <?php 
                                     $start_page = max(1, $page - 2);
@@ -297,11 +295,11 @@
                                     for($i=$start_page; $i<=$end_page; $i++): 
                                 ?>
                                 <li class="page-item <?= ($page == $i) ? 'active' : '' ?>">
-                                    <a class="page-link" href="?act=Rekapitulasi&bulan=<?=$bulan?>&tahun=<?=$tahun?>&page=<?=$i?>"><?=$i?></a>
+                                    <a class="page-link" href="?act=Rekapitulasi&tgl_awal=<?=urlencode($tgl_awal)?>&tgl_akhir=<?=urlencode($tgl_akhir)?>&keyword=<?=urlencode($keyword)?>&page=<?=$i?>"><?=$i?></a>
                                 </li>
                                 <?php endfor; ?>
                                 <li class="page-item <?= ($page >= $total_pages) ? 'disabled' : '' ?>">
-                                    <a class="page-link" href="?act=Rekapitulasi&bulan=<?=$bulan?>&tahun=<?=$tahun?>&page=<?=$page+1?>">Next</a>
+                                    <a class="page-link" href="?act=Rekapitulasi&tgl_awal=<?=urlencode($tgl_awal)?>&tgl_akhir=<?=urlencode($tgl_akhir)?>&keyword=<?=urlencode($keyword)?>&page=<?=$page+1?>">Next</a>
                                 </li>
                             </ul>
                         </nav>
