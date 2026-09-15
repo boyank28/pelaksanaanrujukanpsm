@@ -90,9 +90,16 @@ $nama_instansi = $setting ? $setting['nama_instansi'] : 'Instansi Kesehatan';
     </style>
 </head>
 <body onload="window.print();">
-    <h3 class="text-center fw-bold" style="margin-bottom: 5px;"><?= e($nama_instansi) ?></h3>
-    <h4 class="text-center fw-bold" style="margin-top: 0; margin-bottom: 5px;">DATA REKAP PASIEN RUJUKAN PSM</h4>
-    <p class="text-center" style="margin-top:0; margin-bottom: 15px; font-weight: 600;">Periode: <?= date('d/m/Y', strtotime($tgl_awal)) ?> s.d. <?= date('d/m/Y', strtotime($tgl_akhir)) ?></p>
+    <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 15px; position: relative;">
+        <?php if($setting && !empty($setting['logo']) && file_exists(__DIR__ . '/../images/' . $setting['logo'])): ?>
+            <img src="../images/<?= e($setting['logo']) ?>" style="max-height: 55px; position: absolute; left: 10px; top: 0;">
+        <?php endif; ?>
+        <div class="text-center">
+            <h3 class="fw-bold" style="margin: 0 0 4px 0; font-size: 16px;"><?= e($nama_instansi) ?></h3>
+            <h4 class="fw-bold" style="margin: 0 0 4px 0; font-size: 14px;">DATA REKAP PASIEN RUJUKAN PSM</h4>
+            <p style="margin: 0; font-weight: 600; font-size: 11px;">Periode: <?= date('d/m/Y', strtotime($tgl_awal)) ?> s.d. <?= date('d/m/Y', strtotime($tgl_akhir)) ?></p>
+        </div>
+    </div>
     <table>
         <thead>
             <tr>

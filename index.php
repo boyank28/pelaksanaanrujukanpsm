@@ -1,25 +1,30 @@
 <?php
- session_start();
- 
- require_once('conf/command.php');
- require_once('conf/conf.php');
+  session_start();
+  
+  require_once('conf/command.php');
+  require_once('conf/conf.php');
 
- // Session Timeout Logic (15 menit = 900 detik)
- if (isset($_SESSION['ses_admin_pelaksanaanrujukanpsm'])) {
-     $timeout = 900; 
-     if (isset($_SESSION['last_action']) && (time() - $_SESSION['last_action'] > $timeout)) {
-         session_unset();
-         session_destroy();
-         swal_alert('Sesi Anda telah berakhir karena tidak ada aktivitas selama 15 menit. Silakan login kembali.', 'index.php?act=Home');
-         exit;
-     }
-     $_SESSION['last_action'] = time(); // update last activity time
- }
- header("Expires: Mon, 26 Jul 1997 05:00:00 GMT"); 
- header("Last-Modified: ".gmdate("D, d M Y H:i:s")." GMT"); 
- header("Cache-Control: no-store, no-cache, must-revalidate"); 
- header("Cache-Control: post-check=0, pre-check=0", false);
- header("Pragma: no-cache"); // HTTP/1.0
+  // Session Timeout Logic (15 menit = 900 detik)
+  if (isset($_SESSION['ses_admin_pelaksanaanrujukanpsm'])) {
+      $timeout = 900; 
+      if (isset($_SESSION['last_action']) && (time() - $_SESSION['last_action'] > $timeout)) {
+          session_unset();
+          session_destroy();
+          swal_alert('Sesi Anda telah berakhir karena tidak ada aktivitas selama 15 menit. Silakan login kembali.', 'index.php?act=Home');
+          exit;
+      }
+      $_SESSION['last_action'] = time(); // update last activity time
+  }
+  header("Expires: Mon, 26 Jul 1997 05:00:00 GMT"); 
+  header("Last-Modified: ".gmdate("D, d M Y H:i:s")." GMT"); 
+  header("Cache-Control: no-store, no-cache, must-revalidate"); 
+  header("Cache-Control: post-check=0, pre-check=0", false);
+  header("Pragma: no-cache"); // HTTP/1.0
+
+  bukakoneksi();
+  $res_app_setting = bukaquery2("SELECT logo FROM setting_aplikasi WHERE id=1");
+  $app_setting = ($res_app_setting && mysqli_num_rows($res_app_setting) > 0) ? mysqli_fetch_array($res_app_setting) : null;
+  $app_logo_favicon = ($app_setting && !empty($app_setting['logo']) && file_exists(__DIR__ . '/images/' . $app_setting['logo'])) ? 'images/' . $app_setting['logo'] : 'images/prototype_psm.png';
 ?>
 
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -27,6 +32,8 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php title();?></title>
+    <link rel="shortcut icon" href="<?= $app_logo_favicon ?>" type="image/x-icon" />
+    <link rel="icon" href="<?= $app_logo_favicon ?>" type="image/x-icon" />
     <link href="css/default.css" rel="stylesheet" type="text/css" />
     <script type="text/javascript" src="library/tiny_mce/tiny_mce.js"></script>
     <script type="text/javascript" src="conf/validator.js"></script>

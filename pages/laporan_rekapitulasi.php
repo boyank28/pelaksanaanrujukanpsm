@@ -5,6 +5,10 @@
     }
     global $db_name_sik, $konektor;
 
+    $perms_rekap = isset($_SESSION['permissions_psm']) ? $_SESSION['permissions_psm'] : [];
+    $is_admin_rekap = (isset($_SESSION['role_psm']) && $_SESSION['role_psm'] == 'Admin');
+    $can_manage_rujukan = !empty($perms_rekap['can_manage_rujukan']) || (empty($perms_rekap) && $is_admin_rekap);
+
     if (isset($_GET['tgl_awal']) && isset($_GET['tgl_akhir'])) {
         $tgl_awal  = $_GET['tgl_awal'];
         $tgl_akhir = $_GET['tgl_akhir'];
@@ -96,7 +100,11 @@
         concat(ps.alamat, ', ', kel.nm_kel, ', ', kec.nm_kec) as alamat,
         mpsm.no_telp as no_hp,
         IFNULL((SELECT totalpiutang FROM {$db_name_sik}.piutang_pasien WHERE no_rawat=r.no_rawat LIMIT 1), 0) as billing,
-        IF(IFNULL(p.override_status, r.status_lanjut)='Ranap', IF(op.no_rawat IS NOT NULL, {$f_ranap_op}, {$f_ranap}), IF(op.no_rawat IS NOT NULL, {$f_ralan_op}, {$f_ralan})) as fee
+        IF(IFNULL(p.override_status, r.status_lanjut)='Ranap', IF(op.no_rawat IS NOT NULL, {$f_ranap_op}, {$f_ranap}), IF(op.no_rawat IS NOT NULL, {$f_ralan_op}, {$f_ralan})) as fee,
+        p.no_rawat,
+        p.tanggal,
+        p.id_psm,
+        p.override_status
     FROM pelaksanaan_rujukan_psm p
     INNER JOIN master_psm mpsm ON p.id_psm = mpsm.id_psm
     INNER JOIN {$db_name_sik}.reg_periksa r ON p.no_rawat = r.no_rawat
@@ -133,6 +141,22 @@
         while ($r_det = mysqli_fetch_array($hasil_detail)) {
             $fee = (float)$r_det['fee'];
             $total_fee += $fee;
+            
+            $action_td = "";
+            if ($can_manage_rujukan) {
+                $editOnclick = "showEditModal(" . json_encode($r_det['no_rawat']) . "," . json_encode($r_det['tanggal']) . "," . json_encode($r_det['id_psm']) . "," . json_encode($r_det['override_status']) . ")";
+                $confirmOnsubmit = "return confirm(" . json_encode('Yakin ingin menghapus data rujukan pasien ' . $r_det['nm_pasien'] . ' ini? Fotonya juga akan terhapus.') . ")";
+                $action_td = "<td class='text-center' style='white-space:nowrap;'>
+                    <button onclick=\"".e($editOnclick)."\" class='btn btn-sm btn-warning me-1' style='color:white; border-radius:6px;' title='Edit PSM'><i class='bi bi-pencil-square'></i></button>
+                    <form method='POST' action='?act=HapusRujukan' style='display:inline;' onsubmit=\"".e($confirmOnsubmit)."\">
+                        ".csrf_input()."
+                        <input type='hidden' name='no_rawat' value='".e($r_det['no_rawat'])."'>
+                        <input type='hidden' name='tanggal' value='".e($r_det['tanggal'])."'>
+                        <button type='submit' class='btn btn-sm btn-danger' style='border-radius:6px;' title='Hapus Data'><i class='bi bi-trash-fill'></i></button>
+                    </form>
+                </td>";
+            }
+
             $detail_rows .= "<tr>
                 <td>".$no_detail++."</td>
                 <td>".date('d/m/Y', strtotime($r_det['tgl_masuk']))."</td>
@@ -146,11 +170,16 @@
                 <td>".e($r_det['no_hp'])."</td>
                 <td class='text-end'>".number_format((float)$r_det['billing'], 0, ',', '.')."</td>
                 <td class='text-end'>".number_format($fee, 0, ',', '.')."</td>
+                ".$action_td."
             </tr>";
         }
-        $detail_rows .= "<tr class='fw-bold bg-subtotal'><td colspan='11' class='text-end'>TOTAL FEE (Hal. ini):</td><td class='text-end'>".number_format($total_fee, 0, ',', '.')."</td></tr>";
+        $colspan_tot = $can_manage_rujukan ? 13 : 12;
+        $colspan_label = $can_manage_rujukan ? 11 : 11;
+        $action_empty = $can_manage_rujukan ? "<td></td>" : "";
+        $detail_rows .= "<tr class='fw-bold bg-subtotal'><td colspan='{$colspan_label}' class='text-end'>TOTAL FEE (Hal. ini):</td><td class='text-end'>".number_format($total_fee, 0, ',', '.')."</td>{$action_empty}</tr>";
     } else {
-        $detail_rows = "<tr><td colspan='12' class='text-center text-muted'>Tidak ada data pasien pada bulan ini</td></tr>";
+        $colspan_tot = $can_manage_rujukan ? 13 : 12;
+        $detail_rows = "<tr><td colspan='{$colspan_tot}' class='text-center text-muted'>Tidak ada data pasien pada bulan ini</td></tr>";
     }
 
 ?>
@@ -274,6 +303,9 @@
                                         <th class="py-3">NO HP</th>
                                         <th class="py-3">BILLING</th>
                                         <th class="py-3">FEE</th>
+                                        <?php if($can_manage_rujukan): ?>
+                                        <th class="py-3">AKSI</th>
+                                        <?php endif; ?>
                                     </tr>
                                 </thead>
                                 <tbody style="border-top: none;">
@@ -404,5 +436,75 @@
             document.body.removeChild(downloadLink);
         }
     </script>
+
+    <?php if($can_manage_rujukan): ?>
+    <!-- Modal Edit PSM & Override -->
+    <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 12px; border: none;">
+                <div class="modal-header" style="background: #0ea5e9; color: white; border-top-left-radius: 12px; border-top-right-radius: 12px;">
+                    <h5 class="modal-title fw-bold" id="editModalLabel"><i class="bi bi-pencil-square me-2"></i>Edit Data Rujukan Pasien</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form method="POST" action="?act=EditRujukan">
+                        <?= csrf_input() ?>
+                        <input type="hidden" name="no_rawat" id="edit_no_rawat">
+                        <input type="hidden" name="tanggal" id="edit_tanggal">
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold" style="color: #475569;">Pilih Nama PSM Baru</label>
+                            <select name="id_psm" id="edit_id_psm" class="form-select" required>
+                                <?php
+                                    $q_psm = bukaquery2("SELECT id_psm, nama_psm FROM master_psm ORDER BY nama_psm ASC");
+                                    if($q_psm && mysqli_num_rows($q_psm) > 0) {
+                                        while($d_psm = mysqli_fetch_array($q_psm)){
+                                            echo "<option value='".e($d_psm['id_psm'])."'>".e($d_psm['nama_psm'])."</option>";
+                                        }
+                                    }
+                                ?>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold" style="color: #475569;">Ubah Jenis Perawatan (Manual Fee)</label>
+                            <select name="override_status" id="edit_override_status" class="form-select">
+                                <option value="">Otomatis dari SIMRS</option>
+                                <option value="Ranap">Rawat Inap (Override)</option>
+                                <option value="Ralan">Rawat Jalan (Override)</option>
+                            </select>
+                            <small class="text-muted" style="font-size: 11px;">Gunakan fitur ini JIKA pasien tertahan di IGD/transit tapi ingin dihitung tarif rawat inap.</small>
+                        </div>
+                        <div class="mb-3">
+                            <div class="card bg-light border-0 p-3 mt-3 text-center">
+                                <p class="mb-2 text-muted" style="font-size: 13px;">Ingin memperbarui foto bukti dan tanda tangan?</p>
+                                <a id="btnGantiFoto" href="#" class="btn btn-outline-secondary fw-bold" style="border-radius: 8px;">
+                                    <i class="bi bi-camera me-2"></i>Ambil Ulang Foto & TTD
+                                </a>
+                            </div>
+                        </div>
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn fw-bold text-white" style="background: #0ea5e9; border-radius: 8px;">Simpan Perubahan</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showEditModal(noRawat, tanggal, currentIdPsm, overrideStatus) {
+            $('#edit_no_rawat').val(noRawat);
+            $('#edit_tanggal').val(tanggal);
+            $('#edit_id_psm').val(currentIdPsm);
+            $('#edit_override_status').val(overrideStatus || '');
+            
+            var cameraLink = '?act=Kamera&norawat=' + encodeURIComponent(noRawat) + '&tanggal=' + encodeURIComponent(tanggal);
+            $('#btnGantiFoto').attr('href', cameraLink);
+            
+            var myModal = new bootstrap.Modal(document.getElementById('editModal'));
+            myModal.show();
+        }
+    </script>
+    <?php endif; ?>
 </body>
 </html>

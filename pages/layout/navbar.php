@@ -112,11 +112,33 @@ window.addEventListener('load', function() {
 });
 </script>
 <div class="sidebar-custom d-none d-lg-block">
+    <?php 
+        $res_setting_nav = bukaquery2("SELECT * FROM setting_aplikasi WHERE id=1");
+        $setting_nav = ($res_setting_nav && mysqli_num_rows($res_setting_nav)>0) ? mysqli_fetch_array($res_setting_nav) : null;
+        $nav_logo = ($setting_nav && !empty($setting_nav['logo']) && file_exists(__DIR__ . '/../../images/' . $setting_nav['logo'])) ? 'images/' . $setting_nav['logo'] : null;
+        $nav_instansi = ($setting_nav && !empty($setting_nav['nama_instansi'])) ? $setting_nav['nama_instansi'] : 'SISTEM RUJUKAN';
+    ?>
+    <?php if($nav_logo): ?>
+    <script>
+        (function(){
+            var logoUrl = <?= json_encode($nav_logo) ?>;
+            var link = document.querySelector("link[rel*='icon']") || document.createElement('link');
+            link.type = 'image/x-icon';
+            link.rel = 'shortcut icon';
+            link.href = logoUrl;
+            document.getElementsByTagName('head')[0].appendChild(link);
+        })();
+    </script>
+    <?php endif; ?>
     <a href="?act=Dashboard" class="sidebar-brand">
-        <i class="bi bi-hospital"></i>
+        <?php if($nav_logo): ?>
+            <img src="<?= $nav_logo ?>" alt="Logo" style="max-height: 38px; max-width: 45px; object-fit: contain; margin-right: 10px;" class="bg-white p-1 rounded">
+        <?php else: ?>
+            <i class="bi bi-hospital"></i>
+        <?php endif; ?>
         <div>
-            <div style="font-size: 12px; font-weight: 600; opacity: 0.8; line-height: 1;">SISTEM RUJUKAN</div>
-            <div style="line-height: 1;">PSM</div>
+            <div style="font-size: 11px; font-weight: 600; opacity: 0.85; line-height: 1.1; text-transform: uppercase;"><?= e($nav_instansi) ?></div>
+            <div style="line-height: 1; font-size: 15px; font-weight: 800; color: #ccfbf1;">RUJUKAN PSM</div>
         </div>
     </a>
     
