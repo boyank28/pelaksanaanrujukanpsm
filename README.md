@@ -13,7 +13,17 @@ Sistem informasi ini dirancang untuk mengelola dan memonitor data rujukan pasien
 ## Prototype Sistem (UI/UX Mockup)
 Berikut adalah gambaran purwarupa / antarmuka visual (prototype) dari Sistem Pelaksanaan Rujukan PSM:
 
-![Prototype UI](images/prototype_psm.png)
+### 1. Dashboard Utama & Analytics
+![Dashboard Prototype](images/prototype_psm.png)
+
+### 2. Master Data PSM & Form Modal
+![Master PSM Prototype](images/prototype_master_psm.png)
+
+### 3. Laporan Rekapitulasi & Amprahan Fee
+![Laporan Amprahan Prototype](images/prototype_laporan_amprahan.png)
+
+### 4. Tampilan Mobile & Fitur Kamera Rujukan
+![Mobile View Prototype](images/prototype_mobile_view.png)
 
 ## Teknologi yang Digunakan
 - **Backend**: PHP (Native/Procedural)
